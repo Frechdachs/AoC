@@ -12,42 +12,64 @@ const util = @import("util.zig");
 const List = std.ArrayList;
 const Map = std.AutoHashMap;
 
-const input = @embedFile("input/01");
-const test_input = @embedFile("input/01test");
+const input = @embedFile("input/02");
+const test_input = @embedFile("input/02test");
 
 
-fn parseInput(allocator: Allocator, raw: []const u8) []usize
+fn parseInput(allocator: Allocator, raw: []const u8) [][2]u8
 {
-    var elves = List(usize).init(allocator);
+    var guide = List([2]u8).init(allocator);
 
-    var it = split(u8, raw, "\n\n");
-    var i: usize = 0;
-    while (it.next()) |batch| : (i += 1) {
-        elves.append(0) catch unreachable;
-        var it2 = tokenize(u8, batch, "\n");
-        while (it2.next()) |calories| {
-            elves.items[i] += parseInt(usize, calories, 10) catch unreachable;
+    var it = tokenize(u8, raw, "\n");
+    while (it.next()) |nums| {
+        guide.append(.{nums[0] - 'A', nums[2] - 'X'}) catch unreachable;
+    }
+
+    return guide.toOwnedSlice();
+}
+
+fn part1(guide: [][2]u8) usize
+{
+    var accum: usize = 0;
+
+    for (guide) |strategy| {
+        const move1 = strategy[0];
+        const move2 = strategy[1];
+
+        accum += 1 + move2 + getPoints(move1, move2);
+    }
+
+    return accum;
+}
+
+fn part2(guide: [][2]u8) usize
+{
+    var accum: usize = 0;
+
+    for (guide) |strategy| {
+        const move1 = strategy[0];
+        var move2 = move1 + strategy[1] -% 1;
+
+        if (move2 == 255) {
+            move2 = 2;
+        } else {
+            move2 %= 3;
         }
+
+        accum += 1 + move2 + getPoints(move1, move2);
     }
 
-    return elves.toOwnedSlice();
+    return accum;
 }
 
-fn part1(elves: []usize) usize
+inline fn getPoints(move1: anytype, move2: @TypeOf(move1)) @TypeOf(move1)
 {
-    var max: usize = elves[0];
-    for (elves[1..]) |calories| {
-        if (calories > max) max = calories;
+    if (move2 == move1) {
+        return 3;
+    } else if (move2 == (move1 + 1) % 3) {
+        return 6;
     }
-
-    return max;
-}
-
-fn part2(elves: []usize) usize
-{
-    _ = util.selectNthUnstable(elves, elves.len - 3);
-
-    return util.sum(elves[elves.len - 3..]);
+    return 0;
 }
 
 pub fn main() !void
@@ -56,9 +78,9 @@ pub fn main() !void
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
 
-    const elves = parseInput(arena.allocator(), input);
-    const p1 = part1(elves);
-    const p2 = part2(elves);
+    const guide = parseInput(arena.allocator(), input);
+    const p1 = part1(guide);
+    const p2 = part2(guide);
 
     print("Part1: {}\n", .{ p1 });
     print("Part2: {}\n", .{ p2 });
@@ -77,7 +99,7 @@ fn benchmark() !void
     print("Running benchmark 1/3 ...\r", .{});
 
     var i: u32 = 0;
-    var inp: []usize = undefined;
+    var inp: [][2]u8 = undefined;
     var parse_time: u64 = 0;
     var timer = try std.time.Timer.start();
     while (i < 1000) : (i += 1) {
@@ -126,7 +148,7 @@ test "Part 1"
     defer arena.deinit();
 
     const inp = parseInput(arena.allocator(), test_input);
-    try std.testing.expect(part1(inp) == 24000);
+    try std.testing.expect(part1(inp) == 15);
 }
 
 test "Part 2"
@@ -136,5 +158,5 @@ test "Part 2"
     defer arena.deinit();
 
     const inp = parseInput(arena.allocator(), test_input);
-    try std.testing.expect(part2(inp) == 45000);
+    try std.testing.expect(part2(inp) == 12);
 }
