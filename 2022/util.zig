@@ -151,11 +151,17 @@ pub fn printIntegerWithSeparator(integer: anytype) void
 
     if (negative) print("-", .{});
 
+    var first = true;
     while (div > 0) {
         const d = i / div;
-        print("{}", .{ d });
+        if (first) {
+            print("{}", .{ d });
+        } else {
+            print("{:0>3}", .{ d });
+        }
         if (div > 1) print(",", .{});
         i -= d * div;
+        first = false;
         div /= 1000;
     }
 }
