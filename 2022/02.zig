@@ -33,10 +33,12 @@ fn part1(guide: [][2]u8) usize
     var accum: usize = 0;
 
     for (guide) |strategy| {
-        const move1 = strategy[0];
-        const move2 = strategy[1];
+        const other = strategy[0];
+        const self = strategy[1];
 
-        accum += 1 + move2 + getPoints(move1, move2);
+        const outcome_table: [6]u8 = .{ 0, 6, 3 } ** 2;
+
+        accum += 1 + self + outcome_table[other + 2 - self];
     }
 
     return accum;
@@ -47,29 +49,15 @@ fn part2(guide: [][2]u8) usize
     var accum: usize = 0;
 
     for (guide) |strategy| {
-        const move1 = strategy[0];
-        var move2 = move1 + strategy[1] -% 1;
+        const other = strategy[0];
+        const self_idx = other + strategy[1];
 
-        if (move2 == 255) {
-            move2 = 2;
-        } else {
-            move2 %= 3;
-        }
+        const self_table: [6]u8 = .{ 3, 1, 2 } ** 2;
 
-        accum += 1 + move2 + getPoints(move1, move2);
+        accum += self_table[self_idx] + 3 * strategy[1];
     }
 
     return accum;
-}
-
-inline fn getPoints(move1: anytype, move2: @TypeOf(move1)) @TypeOf(move1)
-{
-    if (move2 == move1) {
-        return 3;
-    } else if (move2 == (move1 + 1) % 3) {
-        return 6;
-    }
-    return 0;
 }
 
 pub fn main() !void
