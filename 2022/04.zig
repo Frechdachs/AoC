@@ -13,68 +13,53 @@ const List = std.ArrayList;
 const Map = std.AutoHashMap;
 const BitSet = std.StaticBitSet;
 
-const input = @embedFile("input/03");
-const test_input = @embedFile("input/03test");
+const input = @embedFile("input/04");
+const test_input = @embedFile("input/04test");
+
+const Range = util.Range(usize);
 
 
-inline fn priority(item: u8) usize
+fn parseInput(allocator: Allocator, raw: []const u8) [][2]Range
 {
-    return switch (item) {
-        'a'...'z' => item - 'a',
-        'A'...'Z' => item - 'A' + 26,
-        else => unreachable,
-    };
-}
-
-fn parseInput(allocator: Allocator, raw: []const u8) []BitSet(64)
-{
-    var sacks = List(BitSet(64)).init(allocator);
+    var ranges = List([2]Range).init(allocator);
 
     var it = tokenize(u8, raw, "\n");
-    while (it.next()) |sack| {
-        var sackset = BitSet(64).initEmpty();
-        for (sack[0..sack.len / 2]) |item| {
-            sackset.set(priority(item));
-        }
-        sacks.append(sackset) catch unreachable;
+    while (it.next()) |line| {
+        var it2 = tokenize(u8, line, "-,");
+        const s1 = parseInt(usize, it2.next().?, 10) catch unreachable;
+        const e1 = parseInt(usize, it2.next().?, 10) catch unreachable;
+        const s2 = parseInt(usize, it2.next().?, 10) catch unreachable;
+        const e2 = parseInt(usize, it2.next().?, 10) catch unreachable;
 
-        sackset = BitSet(64).initEmpty();
-        for (sack[sack.len / 2..]) |item| {
-            sackset.set(priority(item));
-        }
-        sacks.append(sackset) catch unreachable;
+        ranges.append(.{
+            Range{ .start = s1, .end = e1 },
+            Range{ .start = s2, .end = e2 },
+        }) catch unreachable;
     }
 
-    return sacks.toOwnedSlice();
+    return ranges.toOwnedSlice();
 }
 
-fn part1(sacks: []BitSet(64)) usize
+fn part1(ranges: [][2]Range) usize
 {
     var accum: usize = 0;
 
-    const masks = @ptrCast([]u64, sacks);
-    var i: usize = 1;
-    while (i < masks.len) : (i += 2) {
-        const s = masks[i - 1] & masks[i];
-
-        accum += 1 + @ctz(s);
+    for (ranges) |range| {
+        accum += @boolToInt(
+            range[0].containsRange(range[1]) or
+            range[1].containsRange(range[0])
+        );
     }
 
     return accum;
 }
 
-fn part2(sacks: []BitSet(64)) usize
+fn part2(ranges: [][2]Range) usize
 {
     var accum: usize = 0;
 
-    const masks = @ptrCast([]u64, sacks);
-    var i: usize = 5;
-    while (i < masks.len) : (i += 6) {
-        const s1 = masks[i - 5] | masks[i - 4];
-        const s2 = masks[i - 3] | masks[i - 2];
-        const s3 = masks[i - 1] | masks[i];
-
-        accum += 1 + @ctz(s1 & s2 & s3);
+    for (ranges) |range| {
+        accum += @boolToInt(range[0].overlaps(range[1]));
     }
 
     return accum;
@@ -86,9 +71,9 @@ pub fn main() !void
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
 
-    const sacks = parseInput(arena.allocator(), input);
-    const p1 = part1(sacks);
-    const p2 = part2(sacks);
+    const ranges = parseInput(arena.allocator(), input);
+    const p1 = part1(ranges);
+    const p2 = part2(ranges);
 
     print("Part1: {}\n", .{ p1 });
     print("Part2: {}\n", .{ p2 });
@@ -108,7 +93,7 @@ fn benchmark() !void
 
     const warmup: u32 = 100;
     var i: u32 = 0;
-    var inp: []BitSet(64) = undefined;
+    var inp: [][2]Range = undefined;
     var parse_time: u64 = 0;
     var timer = try std.time.Timer.start();
     while (i < 1000 + warmup) : (i += 1) {
@@ -158,7 +143,7 @@ test "Part 1"
     defer arena.deinit();
 
     const inp = parseInput(arena.allocator(), test_input);
-    try std.testing.expect(part1(inp) == 157);
+    try std.testing.expect(part1(inp) == 2);
 }
 
 test "Part 2"
@@ -168,5 +153,5 @@ test "Part 2"
     defer arena.deinit();
 
     const inp = parseInput(arena.allocator(), test_input);
-    try std.testing.expect(part2(inp) == 70);
+    try std.testing.expect(part2(inp) == 4);
 }

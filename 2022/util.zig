@@ -11,9 +11,31 @@ const Map = std.AutoHashMap;
 
 
 //
-// Some utility functions that make writing AoC solutions a bit more comfortable
+// Some utility functions/types that make writing AoC solutions a bit more comfortable
 //
 
+
+pub fn Range(comptime T: type) type
+{
+    return struct {
+        start: T,
+        end: T,
+
+        const Self = @This();
+
+        pub fn contains(self: *const Self, n: T) bool {
+            return n >= self.start and n <= self.end;
+        }
+
+        pub fn containsRange(self: *const Self, other: Self) bool {
+            return self.start >= other.start and self.end <= other.end;
+        }
+
+        pub fn overlaps(self: *const Self, other: Self) bool {
+            return self.start <= other.end and self.end >= other.start;
+        }
+    };
+}
 
 pub inline fn absdiff(a: anytype, b: @TypeOf(a)) @TypeOf(a)
 {
