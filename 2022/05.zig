@@ -72,7 +72,7 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 
     var procedures = List([3]usize).init(allocator);
 
-    var procedures_it = tokenize(u8, it.next().?, "\n");
+    var procedures_it = tokenize(u8, it.rest(), "\n");
     while (procedures_it.next()) |line| {
         var num_it = tokenize(u8, line, "movefrt ");
         const amount = parseInt(usize, num_it.next().?, 10) catch unreachable;
@@ -95,7 +95,8 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 
 fn part1(allocator: Allocator, inp: Parsed) []const u8
 {
-    const parsed = inp.clone() catch unreachable;
+    var parsed = inp.clone() catch unreachable;
+    defer parsed.deinit();
     const stacks = parsed.stacks;
     const procedures = parsed.procedures;
 
@@ -119,7 +120,8 @@ fn part1(allocator: Allocator, inp: Parsed) []const u8
 
 fn part2(allocator: Allocator, inp: Parsed) []const u8
 {
-    const parsed = inp.clone() catch unreachable;
+    var parsed = inp.clone() catch unreachable;
+    defer parsed.deinit();
     const stacks = parsed.stacks;
     const procedures = parsed.procedures;
 
