@@ -30,15 +30,16 @@ const Parsed = struct {
         }
         self.allocator.free(self.stacks);
         self.allocator.free(self.procedures);
-        self.* = undefined;
     }
 
     fn clone(self: *const Self) !Self {
         var new_stacks = try List(List(u8)).initCapacity(self.allocator, self.stacks.len);
+        errdefer new_stacks.deinit();
         for (self.stacks) |*stack| {
             new_stacks.appendAssumeCapacity(try stack.clone());
         }
         var new_procedures = try List([3]usize).initCapacity(self.allocator, self.procedures.len);
+        errdefer new_stacks.deinit();
         new_procedures.appendSliceAssumeCapacity(self.procedures);
 
         return .{
