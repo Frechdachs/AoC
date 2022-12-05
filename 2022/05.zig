@@ -39,7 +39,7 @@ const Parsed = struct {
             new_stacks.appendAssumeCapacity(try stack.clone());
         }
         var new_procedures = try List([3]usize).initCapacity(self.allocator, self.procedures.len);
-        errdefer new_stacks.deinit();
+        errdefer new_procedures.deinit();
         new_procedures.appendSliceAssumeCapacity(self.procedures);
 
         return .{
