@@ -14,8 +14,8 @@ const List = std.ArrayList;
 const Map = std.AutoHashMap;
 const BitSet = std.StaticBitSet;
 
-const INPUT_FILE_NAME = "input/06";
-const TEST_INPUT_FILE_NAME = "input/06test";
+const INPUT_PATH = "input/06";
+const TEST_INPUT_PATH = "input/06test";
 
 
 fn parseInput(allocator: Allocator, raw: []const u8) []const u8
@@ -86,7 +86,7 @@ pub fn main() !void
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
 
-    const input = try std.fs.cwd().readFileAlloc(arena.allocator(), INPUT_FILE_NAME, 1024 * 1024);
+    const input = try std.fs.cwd().readFileAlloc(arena.allocator(), INPUT_PATH, 1024 * 1024);
 
     const stream = parseInput(arena.allocator(), input);
     const p1 = part1(stream);
@@ -105,7 +105,7 @@ pub fn main() !void
 fn benchmark() !void
 {
     const allocator = std.heap.c_allocator;
-    const input = try std.fs.cwd().readFileAlloc(allocator, INPUT_FILE_NAME, 1024 * 1024);
+    const input = try std.fs.cwd().readFileAlloc(allocator, INPUT_PATH, 1024 * 1024);
     defer allocator.free(input);
 
     print("Running benchmark 1/3 ...\r", .{});
@@ -157,7 +157,7 @@ test "Part 1"
     const allocator = std.testing.allocator;
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
-    const input = try std.fs.cwd().readFileAlloc(arena.allocator(), TEST_INPUT_FILE_NAME, 1024 * 1024);
+    const input = try std.fs.cwd().readFileAlloc(arena.allocator(), TEST_INPUT_PATH, 1024 * 1024);
 
     const inp = parseInput(arena.allocator(), input);
     try std.testing.expect(part1(inp) == 7);
@@ -168,7 +168,7 @@ test "Part 2"
     const allocator = std.testing.allocator;
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
-    const input = try std.fs.cwd().readFileAlloc(arena.allocator(), TEST_INPUT_FILE_NAME, 1024 * 1024);
+    const input = try std.fs.cwd().readFileAlloc(arena.allocator(), TEST_INPUT_PATH, 1024 * 1024);
 
     const inp = parseInput(arena.allocator(), input);
     try std.testing.expect(part2(inp) == 19);
