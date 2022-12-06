@@ -31,7 +31,7 @@ inline fn findMarker(comptime marker_len: usize, stream: []const u8) usize
 {
     var i: usize = marker_len;
     while (i <= stream.len) : (i += 1) {
-        var bitset = BitSet(64).initEmpty();
+        var bitset = BitSet(32).initEmpty();
 
         for (stream[i - marker_len..i]) |c| {
             bitset.set(c - 'a');
