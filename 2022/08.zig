@@ -18,37 +18,6 @@ const INPUT_PATH = "input/08";
 const TEST_INPUT_PATH = "input/08test";
 
 
-// const Forest = struct {
-//     items: [][]u8,
-//     allocator: Allocator,
-
-//     const Self = @This();
-
-//     fn init(allocator: Allocator, raw: []const u8) Self {
-//         var items = List([]u8).init(allocator);
-
-//         var it = tokenize(u8, raw, "\n");
-//         while (it.next()) |line| {
-//             var tree_line = List(u8).init(allocator);
-//             tree_line.appendSlice(line) catch unreachable;
-
-//             items.append(tree_line.toOwnedSlice()) catch unreachable;
-//         }
-
-//         return .{
-//             .items = items.toOwnedSlice(),
-//             .allocator = allocator,
-//         };
-//     }
-
-//     fn deinit(self: *Self) void {
-//         for (self.items) |tree_line| {
-//             self.allocator.free(tree_line);
-//         }
-//         self.allocator.free(self.items);
-//     }
-// };
-
 const Forest = struct {
     items: [][]u8,
     data: []u8,
