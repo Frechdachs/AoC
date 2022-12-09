@@ -22,7 +22,7 @@ const Parsed = [][2]usize;
 
 const Rope = struct {
     knots: [][2]isize,
-    grid: util.Grid(void),
+    visited: util.Grid(void),
     allocator: Allocator,
 
     const Self = @This();
@@ -30,25 +30,25 @@ const Rope = struct {
     fn init(allocator: Allocator, n: usize) Self {
         assert(n > 0);
         var knots = List([2]isize).init(allocator);
-        var grid = util.Grid(void).init(allocator);
+        var visited = util.Grid(void).init(allocator);
         const knot = .{ 0, 0 };
 
         var i: usize = 0;
         while (i < n) : (i += 1) {
             knots.append(knot) catch unreachable;
         }
-        grid.put(knot, {}) catch unreachable;
+        visited.put(knot, {}) catch unreachable;
 
         return .{
             .knots = knots.toOwnedSlice(),
-            .grid = grid,
+            .visited = visited,
             .allocator = allocator,
         };
     }
 
     fn deinit(self: *Self) void {
         self.allocator.free(self.knots);
-        self.grid.deinit();
+        self.visited.deinit();
     }
 
     fn simulate(self: *Self, movement: [2]usize) void {
@@ -70,7 +70,6 @@ const Rope = struct {
             self.knots[0][1] += add[1];
 
             for (self.knots[1..]) |*knot, i| {
-
                 const diff = .{
                     self.knots[i][0] - knot[0],
                     self.knots[i][1] - knot[1],
@@ -90,7 +89,7 @@ const Rope = struct {
                 }
 
                 if (i + 2 == self.knots.len) {
-                    self.grid.put(knot.*, {}) catch unreachable;
+                    self.visited.put(knot.*, {}) catch unreachable;
                 }
             }
         }
@@ -122,7 +121,7 @@ fn part1(parsed: Parsed) usize
         rope.simulate(movement);
     }
 
-    return rope.grid.count();
+    return rope.visited.count();
 }
 
 fn part2(parsed: Parsed) usize
@@ -135,7 +134,7 @@ fn part2(parsed: Parsed) usize
         rope.simulate(movement);
     }
 
-    return rope.grid.count();
+    return rope.visited.count();
 }
 
 pub fn main() !void
