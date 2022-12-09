@@ -28,7 +28,7 @@ const Rope = struct {
     const Self = @This();
 
     fn init(allocator: Allocator, n: usize) Self {
-        assert(n > 0);
+        assert(n > 1);
         var knots = List([2]isize).init(allocator);
         var visited = util.Grid(void).init(allocator);
         const knot = .{ 0, 0 };
