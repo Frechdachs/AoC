@@ -145,6 +145,10 @@ pub fn Grid(comptime T: type) type
         pub fn putNoClobber(self: *Self, key: K, value: T) Allocator.Error!void {
             return self.map.putNoClobber(key, value);
         }
+
+        pub fn count(self: Self) Map(K, T).Size {
+            return self.map.count();
+        }
     };
 }
 
