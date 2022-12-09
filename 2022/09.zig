@@ -38,6 +38,7 @@ const Rope = struct {
             knots.append(knot) catch unreachable;
         }
         grid.put(knot, {}) catch unreachable;
+
         return .{
             .knots = knots.toOwnedSlice(),
             .grid = grid,
