@@ -58,6 +58,22 @@ pub inline fn sum(items: anytype) switch (@typeInfo(@TypeOf(items))) {
     return accum;
 }
 
+pub inline fn sumWrapping(items: anytype) switch (@typeInfo(@TypeOf(items))) {
+    .Array => |arr| arr.child,
+    .Pointer => |ptr| ptr.child,
+    else => @compileError("sum: The type " ++ @typeName(@TypeOf(items)) ++ " is not supported."),
+}
+{
+    const T = @TypeOf(items[0]);
+
+    var accum: T = 0;
+    for (items) |item| {
+        accum +%= item;
+    }
+
+    return accum;
+}
+
 pub inline fn product(items: anytype) switch (@typeInfo(@TypeOf(items))) {
     .Array => |arr| arr.child,
     .Pointer => |ptr| ptr.child,
