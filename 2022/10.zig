@@ -69,7 +69,6 @@ fn part1(parsed: Parsed) isize
             checkpoint += 40;
         }
     }
-    
 
     return accum;
 }
@@ -95,7 +94,6 @@ fn part2(parsed: Parsed) [40 * 6 + 7]u8
 
         writeCharacter(&screen, cycle, register);
     }
-    
 
     return screen;
 }
