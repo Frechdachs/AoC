@@ -82,7 +82,7 @@ const Monkey = struct {
         }
 
         line = it_monkey.next().?;
-        const operation: Operation = blk: {
+        const operation = blk: {
             if (line[25] == 'o') {
                 break :blk Operation{ .square = {} };
             } else {
