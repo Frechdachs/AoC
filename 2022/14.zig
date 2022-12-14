@@ -53,17 +53,9 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
                 const end_y = next[0];
                 const end_x = next[1];
                 if (start_y == end_y) {
-                    var start = @min(start_x, end_x);
-                    var end = @max(start_x, end_x);
-                    var curr_y = start_y;
-                    while (end - start > 0 and curr_y < floor_y) {
-                        var i: isize = start;
-                        while (i <= end) : (i += 1) {
-                            cones.put(.{ curr_y, i }, {}) catch unreachable;
-                        }
-                        start += 1;
-                        end -= 1;
-                        curr_y += 1;
+                    var i: isize = @min(start_x, end_x);
+                    while (i <= @max(start_x, end_x)) : (i += 1) {
+                        cones.put(.{ start_y, i }, {}) catch unreachable;
                     }
                 } else if (start_x == end_x) {
                     var i: isize = @min(start_y, end_y);
@@ -75,6 +67,17 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
                 }
             }
             last = next;
+        }
+    }
+
+    // Fill the cones from top to bottom
+    var i: isize = 0;
+    while (i < floor_y) : (i += 1) {
+        var j = 500 - i;
+        while (j <= 500 + i) : (j += 1) {
+            if (cones.contains(.{ i - 1, j }) and cones.contains(.{ i - 1, j - 1 }) and cones.contains(.{ i - 1, j + 1 })) {
+                cones.put(.{ i, j }, {}) catch unreachable;
+            }
         }
     }
 
@@ -120,7 +123,7 @@ fn part1(parsed: Parsed) usize
 fn part2(parsed: Parsed) usize
 {
     const cones = parsed.cones;
-    const n = parsed.floor_y - 1;
+    const n = parsed.floor_y;
 
     return @intCast(usize, n * n) - cones.count();
 }
@@ -155,7 +158,7 @@ test "Part 1"
 
     var parsed = parseInput(allocator, input);
     defer parsed.deinit();
-    try std.testing.expect(part1(parsed) == 13);
+    try std.testing.expect(part1(parsed) == 24);
 }
 
 test "Part 2"
@@ -166,5 +169,5 @@ test "Part 2"
 
     var parsed = parseInput(allocator, input);
     defer parsed.deinit();
-    try std.testing.expect(part2(parsed) == 140);
+    try std.testing.expect(part2(parsed) == 93);
 }
