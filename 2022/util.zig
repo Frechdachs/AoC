@@ -165,7 +165,79 @@ pub fn Grid(comptime T: type) type
         pub fn count(self: Self) Map(K, T).Size {
             return self.map.count();
         }
+
+        pub fn contains(self: Self, key: K) bool {
+            return self.map.contains(key);
+        }
+
+        pub fn clone(self: Self) Allocator.Error!Self {
+            return .{
+                .map = try self.map.clone(),
+                .allocator = self.allocator,
+            };
+        }
     };
+}
+
+pub fn benchmark(
+    comptime input_path: []const u8,
+    comptime parseFn: anytype,
+    comptime part1Fn: anytype,
+    comptime part2Fn: anytype,
+    comptime parse_count: u32,
+    comptime part1_count: u32,
+    comptime part2_count: u32,
+) !void
+{
+    const allocator = std.heap.c_allocator;
+    const input = try std.fs.cwd().readFileAlloc(allocator, input_path, 1024 * 1024);
+    defer allocator.free(input);
+
+    print("Running benchmark 1/3 ...\r", .{});
+
+    const warmup: u32 = 100;
+    var i: u32 = 0;
+    var parsed: @typeInfo(@TypeOf(parseFn)).Fn.return_type.? = undefined;
+    var parse_time: u64 = 0;
+    var timer = try std.time.Timer.start();
+    while (i < parse_count + warmup) : (i += 1) {
+        if (i >= warmup) timer.reset();
+        parsed = parseFn(allocator, input);
+        defer parsed.deinit();
+        if (i >= warmup) parse_time += timer.read();
+    }
+    parse_time /= i - warmup;
+
+    print("Running benchmark 2/3 ...\r", .{});
+
+    i = 0;
+    var p1: usize = undefined;
+    var part1_time: u64 = 0;
+    while (i < part1_count + warmup) : (i += 1) {
+        parsed = parseFn(allocator, input);
+        defer parsed.deinit();
+        if (i >= warmup) timer.reset();
+        p1 = part1Fn(parsed);
+        if (i >= warmup) part1_time += timer.read();
+    }
+    part1_time /= i - warmup;
+
+    print("Running benchmark 3/3 ...\r", .{});
+
+    i = 0;
+    var p2: usize = undefined;
+    var part2_time: u64 = 0;
+    while (i < part2_count + warmup) : (i += 1) {
+        parsed = parseFn(allocator, input);
+        defer parsed.deinit();
+        if (i >= warmup) timer.reset();
+        p2 = part2Fn(parsed);
+        if (i >= warmup) part2_time += timer.read();
+    }
+    part2_time /= i - warmup;
+
+    print("{}{}\r", .{ p1, p2 });  // This should prevent parts of the benchmark from being optimized away.
+    printBenchmark(parse_time, part1_time, part2_time);
 }
 
 pub fn printBenchmark(parse_time: anytype, part1_time: anytype, part2_time: anytype) void
