@@ -91,8 +91,8 @@ fn solvePart1(comptime y_pos: isize, parsed: Parsed) usize
     defer ranges.deinit();
 
     outer: for (scanners) |scanner| {
-        const start = scanner.x - scanner.range + util.absdiff(scanner.y, y_pos);
-        const end = scanner.x + scanner.range - util.absdiff(scanner.y, y_pos);
+        var start = scanner.x - scanner.range + util.absdiff(scanner.y, y_pos);
+        var end = scanner.x + scanner.range - util.absdiff(scanner.y, y_pos);
         if (scanner.beacon_y == y_pos) {
             beacons.put(.{ scanner.beacon_x, scanner.beacon_y }, {}) catch unreachable;
         }
@@ -101,7 +101,7 @@ fn solvePart1(comptime y_pos: isize, parsed: Parsed) usize
         // but why should I if I don't have to :)
         var i: usize = 0;
         while (i < ranges.items.len) {
-            const range = &ranges.items[i];
+            const range = ranges.items[i];
             const l = range.l;
             const r = range.r;
             if (start >= l and end <= r) {
@@ -112,9 +112,13 @@ fn solvePart1(comptime y_pos: isize, parsed: Parsed) usize
                 // the new element at this position
                 continue;
             } else if (start <= l and end >= l) {
-                range.l = end + 1;
+                end = range.r;
+                _ = ranges.swapRemove(i);
+                continue;
             } else if (start <= r and end >= r) {
-                range.r = start - 1;
+                start = range.l;
+                _ = ranges.swapRemove(i);
+                continue;
             }
             i += 1;
         }
@@ -133,23 +137,41 @@ fn solvePart2(comptime limit: isize, parsed: Parsed) usize
 {
     const scanners = parsed.scanners;
 
-    var result: isize = 0;
-    var x: isize = 0;
-    outer: while (x <= limit) : (x += 1) {
-        var y: isize = 0;
-        inner: while (y <= limit) : (y += 1) {
-            for (scanners) |scanner| {
-                if (scanner.sees(x, y)) {
-                    y = scanner.range + scanner.y - util.absdiff(x, scanner.x);
-                    continue :inner;
-                }
+    for (scanners) |scanner1, i| {
+        intersect: for (scanners[i + 1..]) |scanner2| {
+            var s1 = scanner1;
+            var s2 = scanner2;
+
+            // Check if intersections can happen
+            const distance = util.absdiff(s1.x, s2.x) + util.absdiff(s1.y, s2.y);
+            if (distance > s1.range + s2.range) continue;
+            if (distance <= util.absdiff(s1.range, s2.range)) continue;
+            if (s1.y > s2.y) {
+                std.mem.swap(Scanner, &s1, &s2);
             }
-            result = 4_000_000 * x + y;
-            break :outer;
+
+            // Only look at _one_ of the four possible types of intersections
+            // i.e. bottom-right diagonal of s1 intersected with top-right diagonal of s2
+            // Every type of intersection is guaranteed to happen once around the search goal
+            if (s1.sees(s2.x, s2.y - s2.range)) {
+                const top_distance = util.absdiff(s1.x, s2.x) + util.absdiff(s1.y - s1.range, s2.y - s2.range);
+                const needed_distance = 2 * s1.range + 1 - top_distance;
+                const x = s2.x + @divTrunc(needed_distance + 1, 2);
+                const y = s2.y - s2.range + @divTrunc(needed_distance - 1, 2);
+                if (x < 0 or x > limit or y < 0 or y > limit) continue;
+
+                for (scanners) |scanner| {
+                    if (scanner.sees(x, y)) {
+                        continue :intersect;
+                    }
+                }
+
+                return @intCast(usize, 4_000_000 * x + y);
+            }
         }
     }
 
-    return @intCast(usize, result);
+    return 0;
 }
 
 pub fn main() !void
@@ -167,7 +189,7 @@ pub fn main() !void
     print("Part1: {}\n", .{ p1 });
     print("Part2: {}\n", .{ p2 });
 
-    try util.benchmark(INPUT_PATH, parseInput, part1, part2, 10000, 10000, 10);
+    try util.benchmark(INPUT_PATH, parseInput, part1, part2, 10000, 10000, 10000);
 }
 
 
