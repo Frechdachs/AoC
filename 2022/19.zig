@@ -142,18 +142,29 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 
 fn part1(parsed: Parsed) usize
 {
+    var best_geode = Map(usize, usize).init(parsed.allocator);
+    var best_obsidian = Map(usize, usize).init(parsed.allocator);
+    var best_clay = Map(usize, usize).init(parsed.allocator);
+    var best_ore = Map(usize, usize).init(parsed.allocator);
+    defer best_geode.deinit();
+    defer best_obsidian.deinit();
+    defer best_clay.deinit();
+    defer best_ore.deinit();
+
     var accum: usize = 0;
-    var best = Map(usize, usize).init(parsed.allocator);
-    defer best.deinit();
+
     for (parsed.blueprints) |blueprint, i| {
-        best.clearRetainingCapacity();
+        best_geode.clearRetainingCapacity();
+        best_obsidian.clearRetainingCapacity();
+        best_clay.clearRetainingCapacity();
+        best_ore.clearRetainingCapacity();
         const factory = Factory{
             .blueprint = blueprint,
             .resources = .{ .ore = 0, .clay = 0, .obsidian = 0 },
             .resource_robots = .{ .ore = 1, .clay = 0, .obsidian = 0 },
             .geode_robots = 0,
         };
-        accum += (i + 1) * findMaximumGeode(factory, &best, 0, 24);
+        accum += (i + 1) * findMaximumGeode(factory, .{ &best_geode, &best_obsidian, &best_clay, &best_ore }, 0, 24);
     }
 
     return accum;
@@ -161,58 +172,99 @@ fn part1(parsed: Parsed) usize
 
 fn part2(parsed: Parsed) usize
 {
+    var best_geode = Map(usize, usize).init(parsed.allocator);
+    var best_obsidian = Map(usize, usize).init(parsed.allocator);
+    var best_clay = Map(usize, usize).init(parsed.allocator);
+    var best_ore = Map(usize, usize).init(parsed.allocator);
+    defer best_geode.deinit();
+    defer best_obsidian.deinit();
+    defer best_clay.deinit();
+    defer best_ore.deinit();
+
     var accum: usize = 1;
-    var best = Map(usize, usize).init(parsed.allocator);
-    defer best.deinit();
+
     const end = @min(3, parsed.blueprints.len);
     for (parsed.blueprints[0..end]) |blueprint| {
-        best.clearRetainingCapacity();
+        best_geode.clearRetainingCapacity();
+        best_obsidian.clearRetainingCapacity();
+        best_clay.clearRetainingCapacity();
+        best_ore.clearRetainingCapacity();
         const factory = Factory{
             .blueprint = blueprint,
             .resources = .{ .ore = 0, .clay = 0, .obsidian = 0 },
             .resource_robots = .{ .ore = 1, .clay = 0, .obsidian = 0 },
             .geode_robots = 0,
         };
-        accum *= findMaximumGeode(factory, &best, 0, 32);
+        accum *= findMaximumGeode(factory, .{ &best_geode, &best_obsidian, &best_clay, &best_ore }, 0, 32);
     }
 
     return accum;
 }
 
-fn findMaximumGeode(factory: Factory, best: *Map(usize, usize), score: usize, n: usize) usize
+/// The second test needs PRECISION 2
+const PRECISION = 1;
+
+fn findMaximumGeode(factory: Factory, best_robots: [4]*Map(usize, usize), score: usize, n: usize) usize
 {
     var max: usize = score;
     const new_score = score + factory.geode_robots;
     const additional_resources = factory.resource_robots;
-
-    const curr_best = best.get(n) orelse 0;
-    if (new_score > curr_best) {
-        best.put(n, new_score) catch unreachable;
-    }
 
     if (n == 1) {
         return new_score;
     }
 
     // Try building the most important robot first.
-
     {
         var new_factory = factory;
         if (new_factory.buildGeode()) {
             new_factory.addResources(additional_resources);
-            max = @max(max, findMaximumGeode(new_factory, best, new_score, n - 1));
+            max = @max(max, findMaximumGeode(new_factory, best_robots, new_score, n - 1));
             return max;
         }
     }
 
-    // Allow to be one off the current best if at least one geode robot has already been built
-    if (new_score + @boolToInt(factory.geode_robots > 0) < curr_best) return max;
+    if (factory.geode_robots != 0) {
+        const best_robot_count = best_robots[0].get(n) orelse 0;
+        if (new_score > best_robot_count) {
+            best_robots[0].put(n, new_score) catch unreachable;
+        }
+        // Allow to wait one round to build a robot
+        if (new_score + PRECISION < best_robot_count) return max;
+
+    } else if (factory.geode_robots == 0 and factory.resource_robots.obsidian != 0) {
+        const best_robot_count = best_robots[1].get(n) orelse 0;
+        const value = factory.resource_robots.obsidian;
+        if (value > best_robot_count) {
+            best_robots[1].put(n, value) catch unreachable;
+        }
+        // Allow to wait one round to build a robot
+        if (value + PRECISION < best_robot_count) return max;
+
+    } else if (factory.resource_robots.obsidian == 0 and factory.resource_robots.clay != 0) {
+        const best_robot_count = best_robots[2].get(n) orelse 0;
+        const value = factory.resource_robots.clay;
+        if (value > best_robot_count) {
+            best_robots[2].put(n, value) catch unreachable;
+        }
+        // Allow to wait one round to build a robot
+        if (value + PRECISION < best_robot_count) return max;
+
+    } else if (factory.resource_robots.clay == 0) {
+        const best_robot_count = best_robots[3].get(n) orelse 0;
+        const value = factory.resources.ore;
+        if (value > best_robot_count) {
+            best_robots[3].put(n, value) catch unreachable;
+        }
+        // Allow to wait one round to build a robot
+        if (value + PRECISION < best_robot_count) return max;
+    }
 
     if (factory.resource_robots.obsidian < factory.blueprint.geode.obsidian) {
         var new_factory = factory;
         if (new_factory.buildObsidian()) {
             new_factory.addResources(additional_resources);
-            max = @max(max, findMaximumGeode(new_factory, best, new_score, n - 1));
+            max = @max(max, findMaximumGeode(new_factory, best_robots, new_score, n - 1));
         }
     }
 
@@ -220,7 +272,7 @@ fn findMaximumGeode(factory: Factory, best: *Map(usize, usize), score: usize, n:
         var new_factory = factory;
         if (new_factory.buildClay()) {
             new_factory.addResources(additional_resources);
-            max = @max(max, findMaximumGeode(new_factory, best, new_score, n - 1));
+            max = @max(max, findMaximumGeode(new_factory, best_robots, new_score, n - 1));
         }
     }
 
@@ -229,24 +281,17 @@ fn findMaximumGeode(factory: Factory, best: *Map(usize, usize), score: usize, n:
         var new_factory = factory;
         if (new_factory.buildOre()) {
             new_factory.addResources(additional_resources);
-            max = @max(max, findMaximumGeode(new_factory, best, new_score, n - 1));
+            max = @max(max, findMaximumGeode(new_factory, best_robots, new_score, n - 1));
         }
     }
 
     {
         var new_factory = factory;
         new_factory.addResources(additional_resources);
-        max = @max(max, findMaximumGeode(new_factory, best, new_score, n - 1));
+        max = @max(max, findMaximumGeode(new_factory, best_robots, new_score, n - 1));
     }
 
     return max;
-}
-
-// Unused
-fn possiblePath(score: usize, factory: Factory, best: *Map(usize, usize), n: usize) bool
-{
-    const curr_best = best.get(1) orelse 0;
-    return score + n * factory.geode_robots + (n - 1) * n / 2 >= curr_best;
 }
 
 pub fn main() !void
@@ -264,7 +309,7 @@ pub fn main() !void
     print("Part1: {}\n", .{ p1 });
     print("Part2: {}\n", .{ p2 });
 
-    // try util.benchmark(INPUT_PATH, parseInput, part1, part2, 10000, 10000, 10000);
+    try util.benchmark(INPUT_PATH, parseInput, part1, part2, 10000, 10, 10);
 }
 
 
