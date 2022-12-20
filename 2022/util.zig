@@ -211,7 +211,7 @@ pub fn benchmark(
     print("Running benchmark 2/3 ...\r", .{});
 
     i = 0;
-    var p1: usize = undefined;
+    var p1: @typeInfo(@TypeOf(part1Fn)).Fn.return_type.? = undefined;
     var part1_time: u64 = 0;
     while (i < part1_count + warmup) : (i += 1) {
         parsed = parseFn(allocator, input);
@@ -225,7 +225,7 @@ pub fn benchmark(
     print("Running benchmark 3/3 ...\r", .{});
 
     i = 0;
-    var p2: usize = undefined;
+    var p2: @typeInfo(@TypeOf(part2Fn)).Fn.return_type.? = undefined;
     var part2_time: u64 = 0;
     while (i < part2_count + warmup) : (i += 1) {
         parsed = parseFn(allocator, input);
