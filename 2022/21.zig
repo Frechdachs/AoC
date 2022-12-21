@@ -19,11 +19,12 @@ const TEST_INPUT_PATH = "input/21test";
 
 const Parsed = struct {
     monkeys: std.StringHashMap(Monkey),
-    required_by_humn: std.StringHashMap(void),
+    requires_humn: std.StringHashMap(void),
     allocator: Allocator,
 
     pub fn deinit(self: *@This()) void {
         self.monkeys.deinit();
+        self.requires_humn.deinit();
     }
 };
 
@@ -59,7 +60,7 @@ const Monkey = union(MonkeyTag) {
         self: Self,
         required_result: isize,
         monkeys: *const std.StringHashMap(Monkey),
-        required_by_humn: *const std.StringHashMap(void),
+        requires_humn: *const std.StringHashMap(void),
     ) isize
     {
         switch (self) {
@@ -72,7 +73,7 @@ const Monkey = union(MonkeyTag) {
                 var monkey2 = monkeys.get(name2).?;
 
                 var swapped = false;
-                if (required_by_humn.contains(name2)) {
+                if (requires_humn.contains(name2)) {
                     std.mem.swap(Monkey, &monkey1, &monkey2);
                     std.mem.swap([]const u8, &name1, &name2);
                     swapped = true;
@@ -91,8 +92,8 @@ const Monkey = union(MonkeyTag) {
                     return new_result;
                 }
 
-                return monkey1.requireResult(new_result, monkeys, required_by_humn);
-            }
+                return monkey1.requireResult(new_result, monkeys, requires_humn);
+            },
         }
     }
 };
@@ -140,17 +141,17 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
         monkeys.put(name, monkey) catch unreachable;
     }
 
-    var required_by_humn = std.StringHashMap(void).init(allocator);
-    required_by_humn.put("humn", {}) catch unreachable;
+    var requires_humn = std.StringHashMap(void).init(allocator);
+    requires_humn.put("humn", {}) catch unreachable;
     var parent = required_by.get("humn").?;
     while (!std.mem.eql(u8, parent, "root")) {
-        required_by_humn.put(parent, {}) catch unreachable;
+        requires_humn.put(parent, {}) catch unreachable;
         parent = required_by.get(parent).?;
     }
 
     return .{
         .monkeys = monkeys,
-        .required_by_humn = required_by_humn,
+        .requires_humn = requires_humn,
         .allocator = allocator,
     };
 }
@@ -166,12 +167,12 @@ fn part1(parsed: Parsed) isize
 fn part2(parsed: Parsed) isize
 {
     const monkeys = parsed.monkeys;
-    const required_by_humn = parsed.required_by_humn;
+    const requires_humn = parsed.requires_humn;
 
     var root = monkeys.get("root").?;
     root.operation.operator = .sub;
 
-    return root.requireResult(0, &monkeys, &required_by_humn);
+    return root.requireResult(0, &monkeys, &requires_humn);
 }
 
 // /// Uses a logarithmic search
