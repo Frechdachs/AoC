@@ -19,6 +19,7 @@ const TEST_INPUT_PATH = "input/21test";
 
 const Parsed = struct {
     monkeys: std.StringHashMap(Monkey),
+    required_by_humn: std.StringHashMap(void),
     allocator: Allocator,
 
     pub fn deinit(self: *@This()) void {
@@ -26,13 +27,18 @@ const Parsed = struct {
     }
 };
 
-const MonkeyTag = enum { number, operation };
+const MonkeyTag = enum {
+    number,
+    operation,
+};
 
 const Monkey = union(MonkeyTag) {
     number: isize,
     operation: Operation,
 
-    fn yells(self: @This(), monkeys: *const std.StringHashMap(Monkey)) isize {
+    const Self = @This();
+
+    fn yells(self: Self, monkeys: *const std.StringHashMap(Monkey)) isize {
         switch(self) {
             .number => |number| return number,
             .operation => |operation| {
@@ -44,9 +50,49 @@ const Monkey = union(MonkeyTag) {
                     .sub => return operand1 - operand2,
                     .mul => return operand1 * operand2,
                     .div => return @divTrunc(operand1, operand2),
-                    .eql => return operand1 - operand2,
                 }
             },
+        }
+    }
+
+    fn requireResult(
+        self: Self,
+        required_result: isize,
+        monkeys: *const std.StringHashMap(Monkey),
+        required_by_humn: *const std.StringHashMap(void),
+    ) isize
+    {
+        switch (self) {
+            .number => |number| return number,
+            .operation => |operation| {
+                const operator = operation.operator;
+                var name1 = operation.operands[0];
+                var name2 = operation.operands[1];
+                var monkey1 = monkeys.get(name1).?;
+                var monkey2 = monkeys.get(name2).?;
+
+                var swapped = false;
+                if (required_by_humn.contains(name2)) {
+                    std.mem.swap(Monkey, &monkey1, &monkey2);
+                    std.mem.swap([]const u8, &name1, &name2);
+                    swapped = true;
+                }
+
+                const operand2 = monkey2.yells(monkeys);
+
+                const new_result = switch (operator) {
+                    .add => required_result - operand2,
+                    .sub => if (!swapped) required_result + operand2 else operand2 - required_result,
+                    .mul => @divTrunc(required_result, operand2),
+                    .div => if (!swapped) required_result * operand2 else @divTrunc(operand2, required_result),
+                };
+
+                if (std.mem.eql(u8, name1, "humn")) {
+                    return new_result;
+                }
+
+                return monkey1.requireResult(new_result, monkeys, required_by_humn);
+            }
         }
     }
 };
@@ -61,12 +107,14 @@ const Operator = enum(u8) {
     sub = '-',
     mul = '*',
     div = '/',
-    eql = '=',
 };
 
 fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 {
     var monkeys = std.StringHashMap(Monkey).init(allocator);
+    var required_by = std.StringHashMap([]const u8).init(allocator);
+    defer required_by.deinit();
+
     var it = tokenize(u8, raw, "\n");
     while (it.next()) |line| {
         var monkey: Monkey = undefined;
@@ -86,12 +134,23 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
                     .operands = .{ operand1, operand2},
                 }
             };
+            required_by.put(operand1, name) catch unreachable;
+            required_by.put(operand2, name) catch unreachable;
         }
         monkeys.put(name, monkey) catch unreachable;
     }
 
+    var required_by_humn = std.StringHashMap(void).init(allocator);
+    required_by_humn.put("humn", {}) catch unreachable;
+    var parent = required_by.get("humn").?;
+    while (!std.mem.eql(u8, parent, "root")) {
+        required_by_humn.put(parent, {}) catch unreachable;
+        parent = required_by.get(parent).?;
+    }
+
     return .{
         .monkeys = monkeys,
+        .required_by_humn = required_by_humn,
         .allocator = allocator,
     };
 }
@@ -99,55 +158,65 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 fn part1(parsed: Parsed) isize
 {
     const monkeys = parsed.monkeys;
-    var accum: isize = 0;
+    const root = monkeys.get("root").?;
 
-    accum = monkeys.get("root").?.yells(&monkeys);
-
-    return accum;
+    return root.yells(&monkeys);
 }
 
 fn part2(parsed: Parsed) isize
 {
-    var monkeys = parsed.monkeys.clone() catch unreachable;
-    defer monkeys.deinit();
+    const monkeys = parsed.monkeys;
+    const required_by_humn = parsed.required_by_humn;
 
     var root = monkeys.get("root").?;
-    root.operation.operator = .eql;
-    monkeys.put("root", root) catch unreachable;
+    root.operation.operator = .sub;
 
-    var humn = Monkey{ .number = 0};
-    monkeys.put("humn", humn) catch unreachable;
-
-    var diff = monkeys.get("root").?.yells(&monkeys);
-
-    var i: isize = 1;
-    var j: isize = 1;
-    var k: isize = 1;
-    while (diff != 0) {
-        const last = diff;
-
-        humn = Monkey{ .number = i };
-        monkeys.put("humn", humn) catch unreachable;
-        diff = monkeys.get("root").?.yells(&monkeys);
-
-        // The sign of the difference changed
-        if (last < 0 and diff > 0 or last > 0 and diff < 0) {
-            j *= 2;
-            k = ~k + 1;
-
-        // This detects if the search number should be negative instead
-        } else if (util.abs(diff) > util.abs(last)) {
-            k = ~k + 1;
-            i = k;
-            j = 1;
-            continue;
-        }
-
-        i += @divTrunc(i, j) * k;
-    }
-
-    return humn.number;
+    return root.requireResult(0, &monkeys, &required_by_humn);
 }
+
+// /// Uses a logarithmic search
+// fn part2(parsed: Parsed) isize
+// {
+//     var monkeys = parsed.monkeys.clone() catch unreachable;
+//     defer monkeys.deinit();
+
+//     var root = monkeys.get("root").?;
+//     root.operation.operator = .sub;
+//     monkeys.put("root", root) catch unreachable;
+
+//     var humn = Monkey{ .number = 0};
+//     monkeys.put("humn", humn) catch unreachable;
+
+//     var diff = monkeys.get("root").?.yells(&monkeys);
+
+//     var i: isize = 1;
+//     var j: isize = 1;
+//     var k: isize = 1;
+//     while (diff != 0) {
+//         const last = diff;
+
+//         humn = Monkey{ .number = i };
+//         monkeys.put("humn", humn) catch unreachable;
+//         diff = monkeys.get("root").?.yells(&monkeys);
+
+//         // The sign of the difference changed
+//         if (last < 0 and diff > 0 or last > 0 and diff < 0) {
+//             j *= 2;
+//             k = ~k + 1;
+
+//         // This detects if the search number should be negative instead
+//         } else if (util.abs(diff) > util.abs(last)) {
+//             k = ~k + 1;
+//             i = k;
+//             j = 1;
+//             continue;
+//         }
+
+//         i += @divTrunc(i, j) * k;
+//     }
+
+//     return humn.number;
+// }
 
 pub fn main() !void
 {
@@ -164,7 +233,7 @@ pub fn main() !void
     print("Part1: {}\n", .{ p1 });
     print("Part2: {}\n", .{ p2 });
 
-    try util.benchmark(INPUT_PATH, parseInput, part1, part2, 10000, 1000, 100);
+    try util.benchmark(INPUT_PATH, parseInput, part1, part2, 10000, 1000, 1000);
 }
 
 
