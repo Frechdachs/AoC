@@ -55,7 +55,7 @@ const LinkedNum = struct {
             curr = curr.next;
         }
         curr = curr.next;
-        while(!curr.start) {
+        while (!curr.start) {
             const next = curr.next;
             curr.allocator.destroy(curr);
             curr = next;
@@ -160,32 +160,21 @@ fn part2(parsed: Parsed) isize
 fn switchNum(num: *LinkedNum, count: isize) void
 {
     if (num.value == 0) return;
-    if (num.value > 0) {
-        var counter = @rem(num.value, count - 1);
-        while (counter > 0) : (counter -= 1) {
-            const prev = num.prev;
-            const next = num.next;
-            prev.next = next;
-            next.prev = prev;
-            num.prev = next;
-            num.next = next.next;
-            next.next = num;
-            num.next.prev = num;
-        }
-    } else {
-        var counter = @rem(num.value, count - 1);
-        while (counter < 0) : (counter += 1) {
-            const prev = num.prev;
-            const next = num.next;
-            next.prev = prev;
-            prev.next = next;
-            num.next = prev;
-            num.prev = prev.prev;
-            prev.prev = num;
-            num.prev.next = num;
-        }
-    }
 
+    var counter = @mod(num.value, count - 1);
+
+    if (counter == 0) return;
+
+    num.prev.next = num.next;
+    num.next.prev = num.prev;
+    var curr = num.next;
+    while (counter > 1) : (counter -= 1) {
+        curr = curr.next;
+    }
+    num.next = curr.next;
+    num.prev = curr;
+    curr.next.prev = num;
+    curr.next = num;
 }
 
 fn findZero(num: *LinkedNum) *LinkedNum
