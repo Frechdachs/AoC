@@ -42,6 +42,16 @@ pub inline fn absdiff(a: anytype, b: @TypeOf(a)) @TypeOf(a)
     if (a < b) return b - a else return a - b;
 }
 
+pub inline fn abs(i: anytype) @TypeOf(i)
+{
+    comptime assert(@typeInfo(@TypeOf(i)).Int.signedness == .signed);
+    assert(i != std.math.minInt(@TypeOf(i)));
+
+    const shift = @typeInfo(@TypeOf(i)).Int.bits - 1;
+
+    return i + (i >> shift) ^ (i >> shift);
+}
+
 pub inline fn sum(items: anytype) switch (@typeInfo(@TypeOf(items))) {
     .Array => |arr| arr.child,
     .Pointer => |ptr| ptr.child,
