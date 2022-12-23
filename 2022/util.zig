@@ -218,14 +218,15 @@ pub fn benchmark(
     }
     parse_time /= i - warmup;
 
+    parsed = parseFn(allocator, input);
+    defer parsed.deinit();
+
     print("Running benchmark 2/3 ...\r", .{});
 
     i = 0;
     var p1: @typeInfo(@TypeOf(part1Fn)).Fn.return_type.? = undefined;
     var part1_time: u64 = 0;
     while (i < part1_count + warmup) : (i += 1) {
-        parsed = parseFn(allocator, input);
-        defer parsed.deinit();
         if (i >= warmup) timer.reset();
         p1 = part1Fn(parsed);
         if (i >= warmup) part1_time += timer.read();
@@ -238,8 +239,6 @@ pub fn benchmark(
     var p2: @typeInfo(@TypeOf(part2Fn)).Fn.return_type.? = undefined;
     var part2_time: u64 = 0;
     while (i < part2_count + warmup) : (i += 1) {
-        parsed = parseFn(allocator, input);
-        defer parsed.deinit();
         if (i >= warmup) timer.reset();
         p2 = part2Fn(parsed);
         if (i >= warmup) part2_time += timer.read();
@@ -268,7 +267,7 @@ pub fn printIntegerWithSeparator(integer: anytype) void
 
     const negative = integer < 0;
 
-    var i = @intCast(u64, if (negative) integer * -1 else integer);
+    var i = @intCast(u64, if (negative) -integer else integer);
 
     var div: u64 = 1;
     while (i / div > 999) div *= 1000;
