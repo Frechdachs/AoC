@@ -100,6 +100,34 @@ pub inline fn product(items: anytype) switch (@typeInfo(@TypeOf(items))) {
     return prod;
 }
 
+pub fn lcm(a: anytype, b: @TypeOf(a)) @TypeOf(a)
+{
+    const type_info = @typeInfo(@TypeOf(a));
+    comptime assert(type_info == .Int or type_info == .ComptimeInt);
+    assert(a >= 0 and b >= 0);
+    assert(a > 0 or b > 0);
+
+    return a * @divTrunc(b, gcd(a, b));
+}
+
+pub fn gcd(a: anytype, b: @TypeOf(a)) @TypeOf(a)
+{
+    const type_info = @typeInfo(@TypeOf(a));
+    comptime assert(type_info == .Int or type_info == .ComptimeInt);
+    assert(a >= 0 and b >= 0);
+    assert(a > 0 or b > 0);
+
+    var i = a;
+    var j = b;
+    if (i < j) std.mem.swap(@TypeOf(a), &i, &j);
+    while (j != 0) {
+        i = @rem(i, j);
+        std.mem.swap(@TypeOf(a), &i, &j);
+    }
+
+    return i;
+}
+
 /// Quickselect selection algorithm
 /// As described in https://en.wikipedia.org/wiki/Quickselect
 pub fn selectNthUnstable(slice: anytype, n: usize) @typeInfo(@TypeOf(slice)).Pointer.child
