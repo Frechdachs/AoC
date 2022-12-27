@@ -255,9 +255,9 @@ pub fn benchmark(
     var p1: @typeInfo(@TypeOf(part1Fn)).Fn.return_type.? = undefined;
     var part1_time: u64 = 0;
     while (i < part1_count + warmup) : (i += 1) {
-        if (i >= warmup) timer.reset();
+        if (i == warmup) timer.reset();
         p1 = part1Fn(parsed);
-        if (i >= warmup) part1_time += timer.read();
+        if (i >= warmup) part1_time += timer.lap();
     }
     part1_time /= i - warmup;
 
@@ -267,9 +267,9 @@ pub fn benchmark(
     var p2: @typeInfo(@TypeOf(part2Fn)).Fn.return_type.? = undefined;
     var part2_time: u64 = 0;
     while (i < part2_count + warmup) : (i += 1) {
-        if (i >= warmup) timer.reset();
+        if (i == warmup) timer.reset();
         p2 = part2Fn(parsed);
-        if (i >= warmup) part2_time += timer.read();
+        if (i >= warmup) part2_time += timer.lap();
     }
     part2_time /= i - warmup;
 
