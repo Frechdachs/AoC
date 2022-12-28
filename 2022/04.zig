@@ -6,7 +6,6 @@ const split = std.mem.split;
 const tokenize = std.mem.tokenize;
 const sort = std.sort.sort;
 const parseInt = std.fmt.parseInt;
-const parser = @import("parser.zig");
 const util = @import("util.zig");
 
 const List = std.ArrayList;

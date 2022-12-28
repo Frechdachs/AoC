@@ -18,13 +18,12 @@ const TEST_INPUT_PATH = "input/12test";
 
 
 const Parsed = struct {
-    starting_points: [][2]isize,
+    start: [2]isize,
     end: [2]isize,
     map: util.Grid(u8),
     allocator: Allocator,
 
     fn deinit(self: *@This()) void {
-        self.allocator.free(self.starting_points);
         self.map.deinit();
     }
 };
@@ -32,7 +31,6 @@ const Parsed = struct {
 fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 {
     var map = util.Grid(u8).init(allocator);
-    var starting_points = List([2]isize).init(allocator);
 
     var start: [2]isize = undefined;
     var end: [2]isize = undefined;
@@ -42,7 +40,6 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
         for (line) |c, j| {
             const point = [2]isize{ i, @intCast(isize, j) };
             var height = c;
-            if (height == 'a') starting_points.append(point) catch unreachable;
             if (c == 'S') {
                 start = point;
                 height = 'a';
@@ -53,10 +50,9 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
             map.put(point, height) catch unreachable;
         }
     }
-    starting_points.append(start) catch unreachable;  // Put part 1 starting point at the end of the list
 
     return .{
-        .starting_points = starting_points.toOwnedSlice(),
+        .start = start,
         .end = end,
         .map = map,
         .allocator = allocator,
@@ -65,20 +61,12 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 
 fn part1(parsed: Parsed) usize
 {
-    const start = parsed.starting_points[parsed.starting_points.len - 1];
-
-    return findFewestSteps(&parsed.map, start, parsed.end);
+    return findFewestSteps(parsed.allocator, &parsed.map, parsed.start, parsed.end);
 }
 
 fn part2(parsed: Parsed) usize
 {
-    var min: usize = std.math.maxInt(usize);
-
-    for (parsed.starting_points) |start| {
-        min = @min(min, findFewestSteps(&parsed.map, start, parsed.end));
-    }
-
-    return min;
+    return findFewestSteps(parsed.allocator, &parsed.map, parsed.end, null);
 }
 
 /// Terrible hack to declare a tuple type
@@ -94,9 +82,8 @@ fn as(comptime T: type, a: anytype) T
 }
 
 /// Based on Dijkstra
-fn findFewestSteps(map: *const util.Grid(u8), start: [2]isize, end: [2]isize) usize
+fn findFewestSteps(allocator: Allocator, map: *const util.Grid(u8), start: [2]isize, end: ?[2]isize) usize
 {
-    const allocator = std.heap.c_allocator;
     var visited = Map([2]isize, void).init(allocator);
     defer visited.deinit();
     var steps = util.Grid(usize).init(allocator);
@@ -114,7 +101,11 @@ fn findFewestSteps(map: *const util.Grid(u8), start: [2]isize, end: [2]isize) us
         const y = curr[0];
         const x = curr[1];
 
-        if (y == end[0] and x == end[1]) return curr_steps;
+        if (end) |e| {
+            if (y == e[0] and x == e[1]) return curr_steps;
+        } else {
+            if (curr_height == 'a') return curr_steps;
+        }
 
         const neighbors = [4][2]isize{
             .{  y + 1, x },
@@ -125,7 +116,11 @@ fn findFewestSteps(map: *const util.Grid(u8), start: [2]isize, end: [2]isize) us
         for (neighbors) |neighbor| {
             if (visited.contains(neighbor)) continue;
             if (map.get(neighbor)) |next_height| {
-                if (next_height > curr_height and next_height - curr_height != 1) continue;
+                if (end) |_| {
+                    if (next_height > curr_height and next_height - curr_height != 1) continue;
+                } else {
+                    if (curr_height > next_height and curr_height - next_height != 1) continue;
+                }
                 const old_steps = steps.get(neighbor) orelse std.math.maxInt(usize);
 
                 const new_steps = curr_steps + 1;
@@ -222,7 +217,7 @@ fn benchmark() !void
     i = 0;
     var p2: usize = undefined;
     var part2_time: u64 = 0;
-    while (i < 100 + warmup) : (i += 1) {
+    while (i < 1000 + warmup) : (i += 1) {
         parsed = parseInput(allocator, input);
         defer parsed.deinit();
         if (i >= warmup) timer.reset();
