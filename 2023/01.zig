@@ -13,7 +13,6 @@ const List = std.ArrayList;
 const Map = std.AutoHashMap;
 
 const INPUT_PATH = "input/01";
-const TEST_INPUT_PATH = "input/01test";
 
 
 const Parsed = struct {
@@ -45,14 +44,17 @@ fn part1(parsed: Parsed) usize
     const document = parsed.document;
 
     var accum: usize = 0;
+
     for (document) |line| {
         var it = tokenize(u8, line, "abcdefghijklmnopqrstuvwxyz");
         const d1_str = it.next().?;
         const d1 = d1_str[0] - '0';
         var d2 = d1_str[d1_str.len - 1] - '0';
+
         while (it.next()) |d| {
             d2 = d[d.len - 1] - '0';
         }
+
         accum += @as(usize, d1) * 10 + d2;
     }
 
@@ -64,15 +66,17 @@ fn part2(parsed: Parsed) usize
     const document = parsed.document;
 
     var accum: usize = 0;
+
     for (document) |line| {
         var d1: ?u8 = null;
         var d2: u8 = 0;
+
         for (line, 0..) |c, i| {
             if (c >= '0' and c <= '9') {
                 if (d1 == null) d1 = c - '0';
                 d2 = c - '0';
             } else {
-                const maybe_d: ?u8 = get_written_digit(line, i);
+                const maybe_d: ?u8 = getWrittenDigit(line[i..]);
                 if (maybe_d) |d| {
                     if (d1 == null) d1 = d;
                     d2 = d;
@@ -85,24 +89,21 @@ fn part2(parsed: Parsed) usize
     return accum;
 }
 
-fn get_written_digit(line: []const u8, i: usize) ?u8
+fn getWrittenDigit(candidate: []const u8) ?u8
 {
-    const candidate = line[i..];
-    const remaining_chars = line.len - i;
-
-    if (remaining_chars < 3) return null;
+    if (candidate.len < 3) return null;
 
     if (std.mem.eql(u8, candidate[0..3], "one")) return 1;
     if (std.mem.eql(u8, candidate[0..3], "two")) return 2;
     if (std.mem.eql(u8, candidate[0..3], "six")) return 6;
 
-    if (remaining_chars < 4) return null;
+    if (candidate.len < 4) return null;
 
     if (std.mem.eql(u8, candidate[0..4], "four")) return 4;
     if (std.mem.eql(u8, candidate[0..4], "five")) return 5;
     if (std.mem.eql(u8, candidate[0..4], "nine")) return 9;
 
-    if (remaining_chars < 5) return null;
+    if (candidate.len < 5) return null;
 
     if (std.mem.eql(u8, candidate[0..5], "three")) return 3;
     if (std.mem.eql(u8, candidate[0..5], "seven")) return 7;
@@ -135,7 +136,7 @@ pub fn main() !void
 test "Part 1"
 {
     const allocator = std.testing.allocator;
-    const input = try std.fs.cwd().readFileAlloc(allocator, TEST_INPUT_PATH, 1024 * 1024);
+    const input = try std.fs.cwd().readFileAlloc(allocator, INPUT_PATH ++ "test", 1024 * 1024);
     defer allocator.free(input);
 
     var parsed = parseInput(allocator, input);
@@ -146,7 +147,7 @@ test "Part 1"
 test "Part 2"
 {
     const allocator = std.testing.allocator;
-    const input = try std.fs.cwd().readFileAlloc(allocator, TEST_INPUT_PATH ++ "2", 1024 * 1024);
+    const input = try std.fs.cwd().readFileAlloc(allocator, INPUT_PATH ++ "test2", 1024 * 1024);
     defer allocator.free(input);
 
     var parsed = parseInput(allocator, input);
