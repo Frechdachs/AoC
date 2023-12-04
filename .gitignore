@@ -4,6 +4,7 @@ zig-cache/
 *.lib
 *.pdb
 *.o
+*c
 
 20*/01
 20*/02
