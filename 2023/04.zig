@@ -85,17 +85,17 @@ fn part2(parsed: Parsed) usize
     var accum: usize = 0;
 
     var card_counts = parsed.allocator.alloc(usize, cards.len) catch unreachable;
-    @memset(card_counts, 0);
+    @memset(card_counts, 1);
     defer parsed.allocator.free(card_counts);
 
 
     for (cards, 0..) |matches, i| {
 
         for (0..matches) |j| {
-            card_counts[i + 1 + j] += 1 + card_counts[i];
+            card_counts[i + 1 + j] += card_counts[i];
         }
 
-        accum += 1 + card_counts[i];
+        accum += card_counts[i];
     }
 
     return accum;
