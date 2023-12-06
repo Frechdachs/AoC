@@ -132,6 +132,8 @@ pub fn gcd(a: anytype, b: @TypeOf(a)) @TypeOf(a)
 /// As described in https://en.wikipedia.org/wiki/Quickselect
 pub fn selectNthUnstable(slice: anytype, n: usize) @typeInfo(@TypeOf(slice)).Pointer.child
 {
+    assert(slice.len > n);
+
     var l: usize = 0;
     var r: usize = slice.len - 1;
     while (l != r) {
