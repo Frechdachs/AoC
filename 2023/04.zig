@@ -85,9 +85,8 @@ fn part2(parsed: Parsed) usize
     var accum: usize = 0;
 
     var card_counts = parsed.allocator.alloc(usize, cards.len) catch unreachable;
-    @memset(card_counts, 1);
     defer parsed.allocator.free(card_counts);
-
+    @memset(card_counts, 1);
 
     for (cards, 0..) |matches, i| {
 
