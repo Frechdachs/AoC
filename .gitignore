@@ -4,7 +4,6 @@ zig-cache/
 *.lib
 *.pdb
 *.o
-*c
 
 20*/01
 20*/02
@@ -31,3 +30,7 @@ zig-cache/
 20*/23
 20*/24
 20*/25
+
+# In case I want to test the C backend of the Zig compiler
+# e.g. source files "04.c" or binaries "04c"
+20*/*c
