@@ -68,7 +68,7 @@ fn part1(parsed: Parsed) usize
     for (hands.items) |*hand| {
         hand.hand_type = getHandType(false, hand.cards);
         for (0..5) |i| {
-            hand.card_strengths[i] = getCardStrength(false, hand.cards[i]);
+            hand.card_strengths[4 - i] = getCardStrength(false, hand.cards[i]);
         }
     }
 
@@ -91,7 +91,7 @@ fn part2(parsed: Parsed) usize
     for (hands.items) |*hand| {
         hand.hand_type = getHandType(true, hand.cards);
         for (0..5) |i| {
-            hand.card_strengths[i] = getCardStrength(true, hand.cards[i]);
+            hand.card_strengths[4 - i] = getCardStrength(true, hand.cards[i]);
         }
     }
 
@@ -116,15 +116,10 @@ fn byRankAsc(_: void, a: Hand, b: Hand) bool {
         return false;
     }
 
-    // Use vector of 8 bytes for better mapping to hardware instructions
-    const strength_vec_a: @Vector(8, u8) = a.card_strengths ++ .{ undefined } ** 3;
-    const strength_vec_b: @Vector(8, u8) = b.card_strengths ++ .{ undefined } ** 3;
-    const smaller_vec = strength_vec_a < strength_vec_b;
-    const bigger_vec = strength_vec_a > strength_vec_b;
-    const smaller_packed: u8 = @bitCast(smaller_vec);
-    const bigger_packed: u8 = @bitCast(bigger_vec);
+    const strength_a: u40 = @bitCast(a.card_strengths);
+    const strength_b: u40 = @bitCast(b.card_strengths);
 
-    if (@ctz(smaller_packed) < @ctz(bigger_packed)) return true;
+    if (strength_a < strength_b) return true;
 
     return false;
 }
