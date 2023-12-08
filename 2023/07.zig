@@ -28,8 +28,13 @@ const Parsed = struct {
 const Hand = struct {
     cards: *const [5]u8,
     bid: usize,
-    hand_type: u8,
-    card_strengths: [5]u8
+    strength: u48,
+
+    const Self = @This();
+
+    fn sortRankAsc(_: void, a: Self, b: Self) bool {
+        return a.strength < b.strength;
+    }
 };
 
 fn parseInput(allocator: Allocator, raw: []const u8) Parsed
@@ -47,8 +52,7 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
         hands.append(.{
             .cards = cards[0..5],
             .bid = bid,
-            .hand_type = 0,
-            .card_strengths = .{ 0 } ** 5,
+            .strength = 0,
         }) catch unreachable;
     }
 
@@ -66,13 +70,15 @@ fn part1(parsed: Parsed) usize
     defer hands.deinit();
 
     for (hands.items) |*hand| {
-        hand.hand_type = getHandType(false, hand.cards);
+        const hand_type = getHandType(false, hand.cards);
+        var card_strengths: [5]u8 = undefined;
         for (0..5) |i| {
-            hand.card_strengths[4 - i] = getCardStrength(false, hand.cards[i]);
+            card_strengths[i] = getCardStrength(false, hand.cards[i]);
         }
+        hand.strength = std.mem.readInt(u48, &(.{ hand_type } ++ card_strengths), .Big);
     }
 
-    sort(Hand, hands.items, {}, byRankAsc);
+    sort(Hand, hands.items, {}, Hand.sortRankAsc);
 
     var accum: usize = 0;
 
@@ -89,13 +95,15 @@ fn part2(parsed: Parsed) usize
     defer hands.deinit();
 
     for (hands.items) |*hand| {
-        hand.hand_type = getHandType(true, hand.cards);
+        const hand_type = getHandType(true, hand.cards);
+        var card_strengths: [5]u8 = undefined;
         for (0..5) |i| {
-            hand.card_strengths[4 - i] = getCardStrength(true, hand.cards[i]);
+            card_strengths[i] = getCardStrength(true, hand.cards[i]);
         }
+        hand.strength = std.mem.readInt(u48, &(.{ hand_type } ++ card_strengths), .Big);
     }
 
-    sort(Hand, hands.items, {}, byRankAsc);
+    sort(Hand, hands.items, {}, Hand.sortRankAsc);
 
     var accum: usize = 0;
 
@@ -104,24 +112,6 @@ fn part2(parsed: Parsed) usize
     }
 
     return accum;
-}
-
-fn byRankAsc(_: void, a: Hand, b: Hand) bool {
-    const type_a = a.hand_type;
-    const type_b = b.hand_type;
-
-    if (type_a < type_b) {
-        return true;
-    } else if (type_a > type_b) {
-        return false;
-    }
-
-    const strength_a: u40 = @bitCast(a.card_strengths);
-    const strength_b: u40 = @bitCast(b.card_strengths);
-
-    if (strength_a < strength_b) return true;
-
-    return false;
 }
 
 fn getHandType(comptime joker: bool, cards: *const [5]u8) u8
