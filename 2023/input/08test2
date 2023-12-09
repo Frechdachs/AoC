@@ -1,0 +1,10 @@
+LR
+
+MMA = (MMB, XXX)
+MMB = (XXX, MMZ)
+MMZ = (MMB, XXX)
+YYA = (YYB, XXX)
+YYB = (YYC, YYC)
+YYC = (YYZ, YYZ)
+YYZ = (YYB, YYB)
+XXX = (XXX, XXX)
