@@ -97,7 +97,7 @@ fn solve(comptime n: usize, allocator: Allocator, galaxies: [][2]usize, empty_y:
     }
 
     for (0..galaxies_adjusted.len - 1) |i| {
-        for (i..galaxies_adjusted.len) |j| {
+        for (i + 1..galaxies_adjusted.len) |j| {
             const g1 = galaxies_adjusted[i];
             const g2 = galaxies_adjusted[j];
 
