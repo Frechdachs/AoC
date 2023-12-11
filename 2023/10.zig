@@ -140,41 +140,6 @@ const PipeNetwork = struct {
             }
         }
 
-        for (0..self.map.len) |y| {
-            var inside = false;
-            var prev_angle: ?Pipe = null;
-            for (0..self.map[0].len) |x| {
-                const is_loop = loop[y][x];
-                var pipe = self.map[y][x];
-                if (pipe == .st) pipe = self.start_pipe;
-                if (is_loop) {
-                    switch (pipe) {
-                        .st => unreachable,
-                        .gr => unreachable,
-                        .ew => {},
-                        .ns => inside = !inside,
-                        else => {
-                            if (prev_angle) |angle_pipe| {
-                                switch (pipe) {
-                                    .nw => if (angle_pipe == .se) {inside = !inside;},
-                                    .sw => if (angle_pipe == .ne) {inside = !inside;},
-                                    else => unreachable
-                                }
-                                prev_angle = null;
-                            } else {
-                                prev_angle = pipe;
-                            }
-                        }
-                    }
-                } else {
-                    switch (pipe) {
-                        .st => unreachable,
-                        else => enclosed[y][x] = enclosed[y][x] and inside
-                    }
-                }
-            }
-        }
-
         var accum: usize = 0;
         for (enclosed) |line| {
             for (line) |value| {
