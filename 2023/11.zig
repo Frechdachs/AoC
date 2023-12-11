@@ -67,34 +67,41 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 
 fn part1(parsed: Parsed) usize
 {
+    const allocator = parsed.allocator;
     const galaxies = parsed.galaxies;
     const empty_y = parsed.empty_y;
     const empty_x = parsed.empty_x;
 
-    return solve(1, galaxies, empty_y, empty_x);
+    return solve(1, allocator, galaxies, empty_y, empty_x);
 }
 
 fn part2(parsed: Parsed) usize
 {
+    const allocator = parsed.allocator;
     const galaxies = parsed.galaxies;
     const empty_y = parsed.empty_y;
     const empty_x = parsed.empty_x;
 
-    return solve(1_000_000 - 1, galaxies, empty_y, empty_x);
+    return solve(1_000_000 - 1, allocator, galaxies, empty_y, empty_x);
 }
 
-fn solve(comptime n: usize, galaxies: [][2]usize, empty_y: []usize, empty_x: []usize) usize
+fn solve(comptime n: usize, allocator: Allocator, galaxies: [][2]usize, empty_y: []usize, empty_x: []usize) usize
 {
     var accum: usize = 0;
 
-    for (0..galaxies.len - 1) |i| {
-        for (i..galaxies.len) |j| {
-            const g1 = galaxies[i];
-            const g2 = galaxies[j];
-            const g1_adjusted = .{ g1[0] + empty_y[g1[0]] * n, g1[1] + empty_x[g1[1]] * n };
-            const g2_adjusted = .{ g2[0] + empty_y[g2[0]] * n, g2[1] + empty_x[g2[1]] * n };
+    var galaxies_adjusted = allocator.alloc(@TypeOf(galaxies[0]), galaxies.len) catch unreachable;
+    defer allocator.free(galaxies_adjusted);
+    @memcpy(galaxies_adjusted, galaxies);
+    for (galaxies_adjusted) |*g| {
+        g.* = .{ g[0] + empty_y[g[0]] * n, g[1] + empty_x[g[1]] * n };
+    }
 
-            accum += util.absdiff(g1_adjusted[0], g2_adjusted[0]) + util.absdiff(g1_adjusted[1], g2_adjusted[1]);
+    for (0..galaxies_adjusted.len - 1) |i| {
+        for (i..galaxies_adjusted.len) |j| {
+            const g1 = galaxies_adjusted[i];
+            const g2 = galaxies_adjusted[j];
+
+            accum += util.absdiff(g1[0], g2[0]) + util.absdiff(g1[1], g2[1]);
         }
     }
 
