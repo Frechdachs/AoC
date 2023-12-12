@@ -68,7 +68,7 @@ fn part1(parsed: Parsed) usize
 
     var accum: usize = 0;
 
-    var map = Map([2]usize, usize).init(parsed.allocator);
+    var map = Map([3]usize, usize).init(parsed.allocator);
     defer map.deinit();
     for (rows, groups) |row, group| {
         accum += solve(parsed.allocator, 0, row, group, &map);
@@ -85,7 +85,7 @@ fn part2(parsed: Parsed) usize
 
     var accum: usize = 0;
 
-    var map = Map([2]usize, usize).init(parsed.allocator);
+    var map = Map([3]usize, usize).init(parsed.allocator);
     defer map.deinit();
     for (rows, groups) |row, group| {
         var row_unfolded = unfold(parsed.allocator, row);
@@ -99,30 +99,23 @@ fn part2(parsed: Parsed) usize
     return accum;
 }
 
-fn solve(allocator: Allocator, idx: usize, row: []const Spring, group: []usize, map: *Map([2]usize, usize)) usize
+fn solve(allocator: Allocator, idx: usize, row: []const Spring, group: []usize, map: *Map([3]usize, usize)) usize
 {
     if (idx >= row.len) {
-        return if (keepGoing(row, group, true) == 2) 1 else 0;
+        return if (keepGoing(row, group, true)) 1 else 0;
     }
 
-    const keep_going = keepGoing(row, group, false);
-    if (keep_going != 2) {
-        return keep_going;
-    }
+    if (!keepGoing(row, group, false)) return 0;
 
-    const remaining_count = getRemainingCount(row[0..idx], group);
+    const state_key = getStateKey(row[0..idx], group);
 
-    if (remaining_count) |count| {
-        const seen = map.get(.{ idx, count });
-        if (seen) |seen_val| return seen_val;
-    }
+    const seen = map.get(.{ idx } ++ state_key);
+    if (seen) |seen_val| return seen_val;
 
     switch (row[idx]) {
         .working => {
             const s = solve(allocator, idx + 1, row, group, map);
-            if (remaining_count) |count| {
-                map.put(.{ idx + 1, count }, s) catch unreachable;
-            }
+            map.put(.{ idx + 1 } ++ state_key, s) catch unreachable;
             return s;
         },
         .damaged => {
@@ -140,19 +133,18 @@ fn solve(allocator: Allocator, idx: usize, row: []const Spring, group: []usize, 
             row_altered2[idx] = .damaged;
             const s1 = solve(allocator, idx, row_altered1, group, map);
             const s2 = solve(allocator, idx, row_altered2, group, map);
+            map.put(.{ idx } ++ state_key, s1 + s2) catch unreachable;
             return s1 + s2;
         },
     }
-
 }
 
-fn getRemainingCount(row: []const Spring, group: []usize) ?usize
+fn getStateKey(row: []const Spring, group: []usize) [2]usize
 {
     var consecutive: usize = 0;
     var found_groups: usize = 0;
-    var last_working: usize = 0;
 
-    for (row, 0..) |c, idx| {
+    for (row) |c| {
         switch (c) {
             .working => {
                 if (consecutive > 0) {
@@ -160,19 +152,17 @@ fn getRemainingCount(row: []const Spring, group: []usize) ?usize
                     if (group[found_groups] != consecutive) unreachable;
                     consecutive = 0;
                     found_groups += 1;
-                    last_working = idx;
                 }
             },
             .damaged => consecutive += 1,
             else => unreachable,
         }
     }
-    if (row.len != last_working + 1) return null;
 
-    return group.len - found_groups;
+    return .{ group.len - found_groups, consecutive };
 }
 
-fn keepGoing(row: []const Spring, group: []usize, final: bool) usize
+fn keepGoing(row: []const Spring, group: []usize, final: bool) bool
 {
     var consecutive: usize = 0;
     var found_groups: usize = 0;
@@ -181,40 +171,40 @@ fn keepGoing(row: []const Spring, group: []usize, final: bool) usize
         switch (c) {
             .working => {
                 if (consecutive > 0) {
-                    if (found_groups >= group.len) return 0;
-                    if (group[found_groups] != consecutive) return 0;
+                    if (found_groups >= group.len) return false;
+                    if (group[found_groups] != consecutive) return false;
                     consecutive = 0;
                     found_groups += 1;
                 }
             },
             .damaged => {
                 consecutive += 1;
-                if (found_groups >= group.len or consecutive > group[found_groups]) return 0;
+                if (found_groups >= group.len or consecutive > group[found_groups]) return false;
             },
             else => {
                 if (found_groups < group.len) {
                     const accum = util.sum(group[found_groups..]) + group[found_groups..].len - 1;
-                    if (consecutive > accum) return 0;
-                    if (accum - consecutive > row[idx..].len) return 0;
-                    if (std.mem.count(Spring, row[idx..], &.{ .damaged }) > accum - consecutive) return 0;
-                    return 2;
+                    if (consecutive > accum) return false;
+                    if (accum - consecutive > row[idx..].len) return false;
+                    if (std.mem.count(Spring, row[idx..], &.{ .damaged }) > accum - consecutive) return false;
+                    return true;
                 } else if (found_groups == group.len) {
-                    if (std.mem.indexOfScalar(Spring, row[idx..], .damaged) == null) return 1;
+                    return !(std.mem.count(Spring, row[idx..], &.{ .damaged }) > 0);
                 }
-                return 0;
+                return false;
             }
         }
     }
     if (consecutive != 0) {
-        if (found_groups >= group.len) return 0;
-        if (group[found_groups] != consecutive) return 0;
+        if (found_groups >= group.len) return false;
+        if (group[found_groups] != consecutive) return false;
         consecutive = 0;
         found_groups += 1;
     }
 
-    if (final and found_groups != group.len) return 0;
+    if (final and found_groups != group.len) return false;
 
-    return 2;
+    return true;
 }
 
 fn unfold(allocator: Allocator, list: anytype) []@TypeOf(list[0])
@@ -247,7 +237,7 @@ pub fn main() !void
     print("Part1: {}\n", .{ p1 });
     print("Part2: {}\n", .{ p2 });
 
-//     try util.benchmark(INPUT_PATH, parseInput, part1, part2, 10000, 1000, 1);
+    try util.benchmark(INPUT_PATH, parseInput, part1, part2, 10000, 1000, 10);
 }
 
 //
