@@ -133,7 +133,7 @@ const Dish = struct {
 
         for (0..self.platform.len) |y| {
             for (0..self.platform[0].len) |x| {
-                if (self.platform[y][x] == .round) accum += switch(dir) {
+                if (self.platform[y][x] == .round) accum += switch (dir) {
                     .n => self.platform.len - y,
                     .w => self.platform[0].len - x,
                     .s => y + 1,
