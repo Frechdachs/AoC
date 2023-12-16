@@ -66,28 +66,20 @@ fn part2(parsed: Parsed) usize
     var boxes: [256]List([L]u8) = .{ List([L]u8).init(parsed.allocator) } ** 256;
     defer for (boxes) |box| box.deinit();
 
-    var accum: usize = 0;
-
     for (strings) |string| {
-        for (string, 0..) |c, i| {
-            switch (c) {
-                '-' => {
-                    const label = string[0..i];
-                    const hash = computeHash(label);
-                    removeLensFromBox(label, &boxes[hash]);
-                    break;
-                },
-                '=' => {
-                    const label = string[0..i];
-                    const hash = computeHash(label);
-                    const focal_length = string[string.len - 1] - '0';
-                    addLensToBox(label, focal_length, &boxes[hash]);
-                    break;
-                },
-                else => continue
-            }
+        if (string[string.len - 1] == '-') {
+            const label = string[0..string.len - 1];
+            const hash = computeHash(label);
+            removeLensFromBox(label, &boxes[hash]);
+        } else {
+            const label = string[0..string.len - 2];
+            const hash = computeHash(label);
+            const focal_length = string[string.len - 1] - '0';
+            addLensToBox(label, focal_length, &boxes[hash]);
         }
     }
+
+    var accum: usize = 0;
 
     for (boxes, 1..) |box, i| {
         for (box.items, 1..) |lens, j| {
