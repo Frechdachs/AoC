@@ -241,10 +241,10 @@ pub fn benchmark(
     var parse_time: u64 = 0;
     var timer = try std.time.Timer.start();
     while (i < parse_count + warmup) : (i += 1) {
-        if (i >= warmup) timer.reset();
+        if (i == warmup) timer.reset();
         parsed = parseFn(allocator, input);
-        defer parsed.deinit();
-        if (i >= warmup) parse_time += timer.read();
+        parsed.deinit();
+        if (i >= warmup) parse_time += timer.lap();
     }
     parse_time /= i - warmup;
 
