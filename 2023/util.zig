@@ -52,6 +52,14 @@ pub inline fn abs(i: anytype) @TypeOf(i)
     return i + (i >> shift) ^ (i >> shift);
 }
 
+pub inline fn intCastArray(comptime T: type, array: anytype) @Vector(array.len, T)
+{
+    const U = @TypeOf(array[0]);
+    const L = array.len;
+
+    return @intCast(@as(@Vector(L, U), array));
+}
+
 pub inline fn sum(items: anytype) switch (@typeInfo(@TypeOf(items))) {
     .Array => |arr| arr.child,
     .Pointer => |ptr| ptr.child,
