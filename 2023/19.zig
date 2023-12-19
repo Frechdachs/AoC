@@ -203,34 +203,33 @@ fn part2(parsed: Parsed) usize
 {
     const workflows = parsed.workflows;
 
-    var accum: usize = 0;
-
     const ranges_start = [_]Range{ Range{} } ** 4;
-    applyRules("in", ranges_start, &workflows, &accum);
+    const accepted = applyRules("in", ranges_start, &workflows);
 
-    return accum;
+    return accepted;
 }
 
-fn applyRules(label: []const u8, ranges_start: [4]Range, workflows: *const std.StringHashMap(std.BoundedArray(Rule, 4)), accum: *usize) void
+fn applyRules(label: []const u8, ranges_start: [4]Range, workflows: *const std.StringHashMap(std.BoundedArray(Rule, 4))) usize
 {
     const rules = workflows.get(label).?;
 
+    var accepted: usize = 0;
     var ranges_last = ranges_start;
     for (rules.slice(), 0..) |rule, i| {
         var ranges = ranges_last;
         if (i < rules.slice().len - 1) {
             ranges_last[rule.category] = ranges_last[rule.category].limit(rule.condition, rule.value, true) catch unreachable;
         }
-        ranges[rule.category] = ranges[rule.category].limit(rule.condition, rule.value, false) catch {
-            continue;
-        };
+        ranges[rule.category] = ranges[rule.category].limit(rule.condition, rule.value, false) catch continue;
 
         switch (rule.destination[0]) {
-            'A' => accum.* += ranges[0].count() * ranges[1].count() * ranges[2].count() * ranges[3].count(),
+            'A' => accepted += ranges[0].count() * ranges[1].count() * ranges[2].count() * ranges[3].count(),
             'R' => {},
-            else => applyRules(rule.destination, ranges, workflows, accum)
+            else => accepted += applyRules(rule.destination, ranges, workflows)
         }
     }
+
+    return accepted;
 }
 
 pub fn main() !void
