@@ -166,9 +166,8 @@ fn part1(parsed: Parsed) usize
 {
     const broadcaster_idx = parsed.broadcaster_idx;
 
-    const modules = parsed.allocator.alloc(@TypeOf(parsed.modules[0]), parsed.modules.len) catch unreachable;
+    const modules = parsed.allocator.dupe(@TypeOf(parsed.modules[0]), parsed.modules) catch unreachable;
     defer parsed.allocator.free(modules);
-    @memcpy(modules, parsed.modules);
 
     var low_pulses: usize = 0;
     var high_pulses: usize = 0;
@@ -211,9 +210,8 @@ fn part2(parsed: Parsed) usize
     const child_module_idx = parsed.child_module_idx;
     const parent_modules = parsed.parent_modules;
 
-    const modules = parsed.allocator.alloc(@TypeOf(parsed.modules[0]), parsed.modules.len) catch unreachable;
+    const modules = parsed.allocator.dupe(@TypeOf(parsed.modules[0]), parsed.modules) catch unreachable;
     defer parsed.allocator.free(modules);
-    @memcpy(modules, parsed.modules);
 
     var queue = List(QueueValue).init(parsed.allocator);
     defer queue.deinit();
