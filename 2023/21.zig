@@ -102,8 +102,8 @@ fn part2(parsed: Parsed) usize
 
 fn getReachableGardens(allocator: Allocator, max_steps: usize, pos_start: [2]usize, map: [][]const Plot) [2]usize
 {
-    var visited = Map([2]usize, void).init(allocator);
-    defer visited.deinit();
+    var seen = Map([2]usize, void).init(allocator);
+    defer seen.deinit();
     var queue = List([3]usize).init(allocator);
     defer queue.deinit();
 
@@ -119,9 +119,9 @@ fn getReachableGardens(allocator: Allocator, max_steps: usize, pos_start: [2]usi
 
         for (getNeighbors(pos, map)) |neighbor_maybe| {
             if (neighbor_maybe) |neighbor| {
-                if (visited.contains(neighbor)) continue;
+                if (seen.contains(neighbor)) continue;
                 queue.append(.{ steps + 1 } ++ neighbor ) catch unreachable;
-                visited.put(neighbor, {}) catch unreachable;
+                seen.put(neighbor, {}) catch unreachable;
             }
         }
     }
