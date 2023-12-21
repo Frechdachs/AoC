@@ -78,7 +78,6 @@ fn part2(parsed: Parsed) usize
 
     const corners: [2]usize = .{ squares[0] - diamonds[0], squares[1] - diamonds[1] };
 
-
     var steps: usize = 26501365 - map.len / 2;
 
     assert(steps % map.len == 0);
