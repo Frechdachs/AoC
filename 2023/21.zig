@@ -18,11 +18,11 @@ const INPUT_PATH = "input/21";
 
 const Parsed = struct {
     pos_start: [2]usize,
-    map: [][]const Plot,
+    plots: [][]const Plot,
     allocator: Allocator,
 
     pub fn deinit(self: *@This()) void {
-        self.allocator.free(self.map);
+        self.allocator.free(self.plots);
     }
 };
 
@@ -35,23 +35,23 @@ const Plot = enum(u8) {
 fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 {
     var line_length = std.mem.indexOf(u8, raw, "\n").?;
-    var map = List([]const Plot).initCapacity(allocator, line_length) catch unreachable;
+    var plots = List([]const Plot).initCapacity(allocator, line_length) catch unreachable;
 
     var i: usize = 0;
     while (i < raw.len) : (i += line_length + 1) {
         const line = raw[i..i + line_length];
-        map.appendAssumeCapacity(@ptrCast(line));
+        plots.appendAssumeCapacity(@ptrCast(line));
     }
 
-    const pos_start = .{ map.items.len / 2, map.items.len / 2 };
-    assert(map.items[pos_start[0]][pos_start[1]] == .start);
-    assert(pos_start[0] == (map.items.len - 1) / 2);
+    const pos_start = .{ plots.items.len / 2, plots.items.len / 2 };
+    assert(plots.items[pos_start[0]][pos_start[1]] == .start);
+    assert(pos_start[0] == (plots.items.len - 1) / 2);
     assert(pos_start[1] == pos_start[0]);
-    assert(map.items.len == map.items[0].len and map.items.len % 2 == 1);
+    assert(plots.items.len == plots.items[0].len and plots.items.len % 2 == 1);
 
     return .{
         .pos_start = pos_start,
-        .map = map.toOwnedSlice() catch unreachable,
+        .plots = plots.toOwnedSlice() catch unreachable,
         .allocator = allocator,
     };
 }
@@ -59,26 +59,26 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 fn part1(parsed: Parsed) usize
 {
     const pos_start = parsed.pos_start;
-    const map = parsed.map;
+    const plots = parsed.plots;
 
     const required_steps: usize = 64;
 
-    return getReachableGardens(parsed.allocator, required_steps, pos_start, map)[1];
+    return getReachableGardens(parsed.allocator, required_steps, pos_start, plots)[1];
 }
 
 fn part2(parsed: Parsed) usize
 {
     const pos_start = parsed.pos_start;
-    const map = parsed.map;
+    const plots = parsed.plots;
 
-    const squares = getReachableGardens(parsed.allocator, map.len, pos_start, map);
-    const diamonds = getReachableGardens(parsed.allocator, map.len / 2, pos_start, map);
+    const squares = getReachableGardens(parsed.allocator, plots.len, pos_start, plots);
+    const diamonds = getReachableGardens(parsed.allocator, plots.len / 2, pos_start, plots);
 
     const corners: [2]usize = .{ squares[0] - diamonds[0], squares[1] - diamonds[1] };
 
-    var steps: usize = 26501365 - map.len / 2;
+    var steps: usize = 26501365 - plots.len / 2;
 
-    assert(steps % map.len == 0);
+    assert(steps % plots.len == 0);
 
     var idx: u1 = 0;
     var needed_squares: usize = 4;
@@ -90,7 +90,7 @@ fn part2(parsed: Parsed) usize
         idx +%= 1;
         needed_squares += 4;
         corner_counter += 1;
-        steps -= map.len;
+        steps -= plots.len;
     }
     accum -= corners[idx +% 1] * (corner_counter + 1);
     accum += corners[idx] * corner_counter;
@@ -98,11 +98,11 @@ fn part2(parsed: Parsed) usize
     return accum;
 }
 
-fn getReachableGardens(allocator: Allocator, required_steps: usize, pos_start: [2]usize, map: [][]const Plot) [2]usize
+fn getReachableGardens(allocator: Allocator, required_steps: usize, pos_start: [2]usize, plots: [][]const Plot) [2]usize
 {
     var seen = Map([2]usize, void).init(allocator);
     defer seen.deinit();
-    var queue = util.Ring([3]usize).init(allocator, map.len * 4) catch unreachable;
+    var queue = util.Ring([3]usize).init(allocator, plots.len * 4) catch unreachable;
     defer queue.deinit();
 
     queue.write(.{ 0 } ++ pos_start) catch unreachable;
@@ -114,7 +114,7 @@ fn getReachableGardens(allocator: Allocator, required_steps: usize, pos_start: [
         if (steps > 0) accum[@intFromBool(steps % 2 == required_steps % 2)] += 1;
         if (steps == required_steps) continue;
 
-        for (getNeighbors(pos, map)) |neighbor_maybe| {
+        for (getNeighbors(pos, plots)) |neighbor_maybe| {
             if (neighbor_maybe) |neighbor| {
                 if (seen.contains(neighbor)) continue;
                 queue.write(.{ steps + 1 } ++ neighbor) catch unreachable;
@@ -126,7 +126,7 @@ fn getReachableGardens(allocator: Allocator, required_steps: usize, pos_start: [
     return accum;
 }
 
-fn getNeighbors(pos: [2]usize, map: [][]const Plot) [4]?[2]usize
+fn getNeighbors(pos: [2]usize, plots: [][]const Plot) [4]?[2]usize
 {
     const y = pos[0];
     const x = pos[1];
@@ -140,18 +140,18 @@ fn getNeighbors(pos: [2]usize, map: [][]const Plot) [4]?[2]usize
             },
             1 => {
                 neighbor = .{ y, x + 1 };
-                if (neighbor[1] > map[0].len - 1) continue;
+                if (neighbor[1] > plots[0].len - 1) continue;
             },
             2 => {
                 neighbor = .{ y + 1, x };
-                if (neighbor[0] > map.len - 1) continue;
+                if (neighbor[0] > plots.len - 1) continue;
             },
             3 => {
                 neighbor = .{ y, std.math.sub(usize, x, 1) catch continue };
             },
             else => unreachable
         }
-        if (map[neighbor[0]][neighbor[1]] == .rock) continue;
+        if (plots[neighbor[0]][neighbor[1]] == .rock) continue;
 
         neighbors[i] = neighbor;
     }
