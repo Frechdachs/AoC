@@ -34,14 +34,13 @@ const Plot = enum(u8) {
 
 fn parseInput(allocator: Allocator, raw: []const u8) Parsed
 {
-    var map = List([]const Plot).init(allocator);
-
     var line_length = std.mem.indexOf(u8, raw, "\n").?;
+    var map = List([]const Plot).initCapacity(allocator, line_length) catch unreachable;
 
     var i: usize = 0;
     while (i < raw.len) : (i += line_length + 1) {
         const line = raw[i..i + line_length];
-        map.append(@ptrCast(line)) catch unreachable;
+        map.appendAssumeCapacity(@ptrCast(line));
     }
 
     const pos_start = .{ map.items.len / 2, map.items.len / 2 };
@@ -81,10 +80,10 @@ fn part2(parsed: Parsed) usize
 
     assert(steps % map.len == 0);
 
-    var needed_squares: usize = 4;
-    var accum: usize = squares[1];
     var idx: u1 = 0;
+    var needed_squares: usize = 4;
     var corner_counter: usize = 0;
+    var accum: usize = squares[1];
     while (steps != 0) {
         accum += squares[idx] * needed_squares;
 
@@ -175,7 +174,7 @@ pub fn main() !void
     print("Part1: {}\n", .{ p1 });
     print("Part2: {}\n", .{ p2 });
 
-    try util.benchmark(INPUT_PATH, parseInput, part1, part2, 10000, 1000, 1000);
+    try util.benchmark(INPUT_PATH, parseInput, part1, part2, 1000000, 1000, 1000);
 }
 
 //
