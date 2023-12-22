@@ -175,6 +175,60 @@ fn partition(slice: anytype, l: usize, r: usize, p_idx: usize) usize
     return s_idx;
 }
 
+/// Pretty much like std.RingBuffer but with generic type support
+/// For some reason std.RingBuffer only supports u8
+pub fn Ring(comptime T: type) type
+{
+    return struct {
+        data: []T,
+        idx_read: usize,
+        idx_write: usize,
+        allocator: Allocator,
+
+        const Self = @This();
+
+        pub fn init(allocator: Allocator, capacity: usize) !Self {
+            const data = try allocator.alloc(T, capacity);
+            return .{
+                .data = data,
+                .idx_read = 0,
+                .idx_write = 0,
+                .allocator = allocator,
+            };
+        }
+
+        pub fn deinit(self: *Self) void {
+            self.allocator.free(self.data);
+        }
+
+        pub fn write(self: *Self, item: T) !void {
+            if (self.len() == self.data.len) return error.NoSpaceLeft;
+            return self.writeAssumeCapacity(item);
+        }
+
+        pub fn writeAssumeCapacity(self: *Self, item: T) void {
+            self.data[self.idx_write % self.data.len] = item;
+            self.idx_write = (self.idx_write + 1) % (2 * self.data.len);
+        }
+
+        pub fn read(self: *Self) ?T {
+            if (self.len() == 0) return null;
+            return self.readAssumeLength();
+        }
+
+        pub fn readAssumeLength(self: *Self) T {
+            const item = self.data[self.idx_read % self.data.len];
+            self.idx_read = (self.idx_read + 1) % (2 * self.data.len);
+            return item;
+        }
+
+        pub fn len(self: *const Self) usize {
+            const idx_end = self.idx_write + 2 * self.data.len * @intFromBool(self.idx_write < self.idx_read);
+            return idx_end - self.idx_read;
+        }
+    };
+}
+
 /// Infinite grid based on a HashMap
 pub fn Grid(comptime T: type) type
 {

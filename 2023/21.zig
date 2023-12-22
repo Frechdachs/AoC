@@ -39,8 +39,7 @@ fn parseInput(allocator: Allocator, raw: []const u8) Parsed
     var line_length = std.mem.indexOf(u8, raw, "\n").?;
 
     var i: usize = 0;
-    var y: usize = 0;
-    while (i < raw.len) : ({ y += 1; i += line_length + 1; }) {
+    while (i < raw.len) : (i += line_length + 1) {
         const line = raw[i..i + line_length];
         map.append(@ptrCast(line)) catch unreachable;
     }
@@ -104,14 +103,13 @@ fn getReachableGardens(allocator: Allocator, required_steps: usize, pos_start: [
 {
     var seen = Map([2]usize, void).init(allocator);
     defer seen.deinit();
-    var queue = List([3]usize).init(allocator);
+    var queue = util.Ring([3]usize).init(allocator, map.len * 4) catch unreachable;
     defer queue.deinit();
 
-    queue.append(.{ 0 } ++ pos_start) catch unreachable;
+    queue.write(.{ 0 } ++ pos_start) catch unreachable;
 
     var accum: [2]usize = .{ 0, 0 };
-    while (queue.items.len > 0) {
-        const value = queue.orderedRemove(0);
+    while (queue.read()) |value| {
         const steps = value[0];
         const pos: [2]usize = .{ value[1], value[2] };
         if (steps > 0) accum[@intFromBool(steps % 2 == required_steps % 2)] += 1;
@@ -120,7 +118,7 @@ fn getReachableGardens(allocator: Allocator, required_steps: usize, pos_start: [
         for (getNeighbors(pos, map)) |neighbor_maybe| {
             if (neighbor_maybe) |neighbor| {
                 if (seen.contains(neighbor)) continue;
-                queue.append(.{ steps + 1 } ++ neighbor) catch unreachable;
+                queue.write(.{ steps + 1 } ++ neighbor) catch unreachable;
                 seen.put(neighbor, {}) catch unreachable;
             }
         }
