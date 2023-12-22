@@ -63,9 +63,9 @@ fn part1(parsed: Parsed) usize
     const pos_start = parsed.pos_start;
     const map = parsed.map;
 
-    const max_steps: usize = 64;
+    const required_steps: usize = 64;
 
-    return getReachableGardens(parsed.allocator, max_steps, pos_start, map)[1];
+    return getReachableGardens(parsed.allocator, required_steps, pos_start, map)[1];
 }
 
 fn part2(parsed: Parsed) usize
@@ -100,7 +100,7 @@ fn part2(parsed: Parsed) usize
     return accum;
 }
 
-fn getReachableGardens(allocator: Allocator, max_steps: usize, pos_start: [2]usize, map: [][]const Plot) [2]usize
+fn getReachableGardens(allocator: Allocator, required_steps: usize, pos_start: [2]usize, map: [][]const Plot) [2]usize
 {
     var seen = Map([2]usize, void).init(allocator);
     defer seen.deinit();
@@ -114,13 +114,13 @@ fn getReachableGardens(allocator: Allocator, max_steps: usize, pos_start: [2]usi
         const value = queue.orderedRemove(0);
         const steps = value[0];
         const pos: [2]usize = .{ value[1], value[2] };
-        if (steps > 0) accum[@intFromBool(steps % 2 == max_steps % 2)] += 1;
-        if (steps == max_steps) continue;
+        if (steps > 0) accum[@intFromBool(steps % 2 == required_steps % 2)] += 1;
+        if (steps == required_steps) continue;
 
         for (getNeighbors(pos, map)) |neighbor_maybe| {
             if (neighbor_maybe) |neighbor| {
                 if (seen.contains(neighbor)) continue;
-                queue.append(.{ steps + 1 } ++ neighbor ) catch unreachable;
+                queue.append(.{ steps + 1 } ++ neighbor) catch unreachable;
                 seen.put(neighbor, {}) catch unreachable;
             }
         }
