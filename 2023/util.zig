@@ -297,7 +297,7 @@ pub fn benchmark(
 
     print("Running benchmark 1/3 ...\r", .{});
 
-    const warmup: u32 = 100;
+    const warmup: u32 = 10;
     var i: u32 = 0;
     var parsed: @typeInfo(@TypeOf(parseFn)).Fn.return_type.? = undefined;
     var parse_time: u64 = 0;
