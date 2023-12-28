@@ -114,12 +114,12 @@ fn part2(parsed: Parsed) isize
     // We end up with the following equations:
     //      o + v * t1 = o1 + v1 * t1
     //      o + v * t2 = o2 + v2 * t2
-    //      o + v * t2 = o2 + v2 * t2
+    //      o + v * t3 = o3 + v3 * t3
     // Those can be rearranged as follows:
-    //      o - o1 = (v - v1) * t1
-    //      o - o2 = (v - v2) * t2
-    //      o - o2 = (v - v2) * t2
-    // We can see that e.g. `(o - o1) = (v - v1) * t1` only has a solution if the vectors (o - o1) and (v - v1) are linearly dependent
+    //      o - o1 = (v - v1) * -t1
+    //      o - o2 = (v - v2) * -t2
+    //      o - o3 = (v - v3) * -t3
+    // We can see that e.g. `(o - o1) = (v - v1) * -t1` only has a solution if the vectors (o - o1) and (v - v1) are linearly dependent
     // This means that the matrix [o - o1; v - v1] has rank < 2
     // From that follows that the three 2x2 minors of this matrix will be 0
     // By computing the three minors we get three equations (terms that we can already compute with the input have been put on the rhs):
@@ -132,6 +132,7 @@ fn part2(parsed: Parsed) isize
     // There are now 9 unknowns, so we need 9 equations
     // Since computing the 2x2 minors gives us three equations per hailstone,
     // we need to consider exactly three hailstones to arrive at a solution
+    // We use gaussian elimination to solve this linear system for o[0], o[1], o[2], v[0], v[1], v[2], a, b, and c
     const hailstones = parsed.hailstones;
 
     var matrix: Matrix = .{ .{ 0 } ** N } ** M;
@@ -236,5 +237,5 @@ test "Part 2"
     var parsed = parseInput(allocator, input);
     defer parsed.deinit();
 
-    try std.testing.expectEqual(@as(usize, 47), part2(parsed));
+    try std.testing.expectEqual(@as(isize, 47), part2(parsed));
 }
