@@ -226,6 +226,11 @@ pub fn Ring(comptime T: type) type
             const idx_end = self.idx_write + 2 * self.data.len * @intFromBool(self.idx_write < self.idx_read);
             return idx_end - self.idx_read;
         }
+
+        pub fn clear(self: *Self) void {
+            self.idx_read = 0;
+            self.idx_write = 0;
+        }
     };
 }
 
@@ -297,7 +302,7 @@ pub fn benchmark(
 
     print("Running benchmark 1/3 ...\r", .{});
 
-    const warmup: u32 = 10;
+    const warmup = @as(u32, @min(@min(parse_count, part1_count), part2_count)) / 100;
     var i: u32 = 0;
     var parsed: @typeInfo(@TypeOf(parseFn)).Fn.return_type.? = undefined;
     var parse_time: u64 = 0;
