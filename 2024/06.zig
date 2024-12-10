@@ -87,14 +87,12 @@ fn part2(parsed: Parsed) usize
         if (!seen.contains(guard.pos) and !std.mem.eql(usize, &guard.pos, &guard_prev.pos) and !std.mem.eql(usize, &guard.pos, &guard_start.pos)) {
             var guard_candidate = guard_start;
             const obstacle = guard.pos;
-            inner: {
-                while (
-                    step2(map, &guard_candidate, &seen_candidate, obstacle) catch {
-                        accum += 1;
-                        break :inner;
-                    }
-                ) continue;
-            }
+            while (
+                step2(map, &guard_candidate, &seen_candidate, obstacle) catch blk: {
+                    accum += 1;
+                    break :blk false;
+                }
+            ) continue;
             seen_candidate.clearRetainingCapacity();
         }
         guard_prev = guard;
@@ -138,7 +136,7 @@ fn step(map: [][]const u8, guard: *Guard, seen: *Map([2]usize, void)) bool
     return true;
 }
 
-fn step2(map: [][]const u8, guard: *Guard, seen: *Map(Guard, void), obstacle: ?[2]usize) !bool
+fn step2(map: [][]const u8, guard: *Guard, seen: *Map(Guard, void), obstacle: [2]usize) !bool
 {
     const x = guard.pos[0];
     const y = guard.pos[1];
@@ -163,7 +161,7 @@ fn step2(map: [][]const u8, guard: *Guard, seen: *Map(Guard, void), obstacle: ?[
             x_new = x - 1;
         },
     }
-    if (map[y_new][x_new] == '#' or obstacle != null and std.mem.eql(usize, &.{ x_new, y_new }, &obstacle.?)) {
+    if (map[y_new][x_new] == '#' or std.mem.eql(usize, &.{ x_new, y_new }, &obstacle)) {
         guard.dir +%= 1;
     } else {
         guard.pos = .{ x_new, y_new };
