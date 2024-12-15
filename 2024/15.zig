@@ -51,25 +51,25 @@ const Warehouse = struct {
     fn cloneWide(self: *const Self) !Self {
         const area = try self.allocator.alloc([]u8, self.area.len);
         for (area, self.area) |*dst, src| {
-            dst.* = try self.allocator.alloc(u8, src.len * 2);
+            dst.* = try self.allocator.alloc(u8, src.len << 1);
             var i: usize = 0;
-            while (i < src.len) : (i += 1) {
-                switch (src[i]) {
+            while (i < src.len << 1) : (i += 2) {
+                switch (src[i >> 1]) {
                     '#' => {
-                        dst.*[i * 2] = '#';
-                        dst.*[i * 2 + 1] = '#';
+                        dst.*[i + 0] = '#';
+                        dst.*[i + 1] = '#';
                     },
                     '.' => {
-                        dst.*[i * 2] = '.';
-                        dst.*[i * 2 + 1] = '.';
+                        dst.*[i + 0] = '.';
+                        dst.*[i + 1] = '.';
                     },
                     'O' => {
-                        dst.*[i * 2] = '[';
-                        dst.*[i * 2 + 1] = ']';
+                        dst.*[i + 0] = '[';
+                        dst.*[i + 1] = ']';
                     },
                     '@' => {
-                        dst.*[i * 2] = '@';
-                        dst.*[i * 2 + 1] = '.';
+                        dst.*[i + 0] = '@';
+                        dst.*[i + 1] = '.';
                     },
                     else => unreachable
                 }
@@ -78,7 +78,7 @@ const Warehouse = struct {
 
         return .{
             .area = area,
-            .robot_start = .{ self.robot_start[0] * 2, self.robot_start[1] },
+            .robot_start = .{ self.robot_start[0] << 1, self.robot_start[1] },
             .allocator = self.allocator,
         };
     }
